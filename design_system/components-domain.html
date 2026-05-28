@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GeniusLink — Domain Components</title>
+<meta name="viewport" content="width=1180" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { font-family: var(--gl-font-body); }
+  ::-webkit-scrollbar { width: 9px; height: 9px; } ::-webkit-scrollbar-thumb { background: var(--gl-border-strong); border-radius: 5px; } ::-webkit-scrollbar-track { background: transparent; }
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="18" y="30" width="44" height="16" rx="8" fill="#33353A"/><rect x="40" y="54" width="42" height="16" rx="8" fill="#4A7CFF"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ds-kit.jsx"></script>
+<script type="text/babel">
+const { GLIcon, DSButton, DSIconButton, DSSpinner, DSPill, DSBadge, DSAvatar, DSCard, DSDivider, Shell, Section, Spec } = window;
+
+/* ── chat bubble + status ticks ── */
+function Ticks({ status }) {
+  if (status === 'sending') return <DSSpinner size={11} color="rgba(255,255,255,.7)" />;
+  if (status === 'failed') return <GLIcon name="alert" size={12} color="#FCA5A5" />;
+  const read = status === 'read';
+  const col = read ? '#9DC0FF' : 'rgba(255,255,255,.7)';
+  return <span style={{ display: 'inline-flex' }}>
+    <GLIcon name="check" size={12} color={col} />
+    {(status === 'delivered' || read) && <span style={{ marginLeft: -7, display: 'flex' }}><GLIcon name="check" size={12} color={col} /></span>}
+  </span>;
+}
+function Bubble({ me, text, time, status }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: me ? 'flex-end' : 'flex-start' }}>
+      <div style={{ maxWidth: '78%', background: me ? 'var(--gl-blue-500)' : 'var(--gl-card-2, #292D38)', color: me ? '#fff' : 'var(--gl-fg-1)', padding: '9px 12px', borderRadius: me ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 13.5, lineHeight: 1.45 }}>
+        {text}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 4 }}>
+          <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: me ? 'rgba(255,255,255,.75)' : 'var(--gl-fg-3)' }}>{time}</span>
+          {me && <Ticks status={status} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+function Composer() {
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8, background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-pill)', width: '100%' }}><DSIconButton icon="paperclip" size={34} /><span style={{ flex: 1, fontSize: 13.5, color: 'var(--gl-fg-3)' }}>Message…</span><DSIconButton icon="mic" size={34} /><button style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--gl-blue-500)', border: 'none', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><GLIcon name="send" size={16} /></button></div>;
+}
+function AttachMenu() {
+  const items = [['image', 'Photo', 'var(--gl-blue-500)'], ['doc', 'File', 'var(--gl-success-500)'], ['poll', 'Poll', 'var(--gl-warning-500)'], ['mic', 'Audio', 'var(--gl-danger-500)']];
+  return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, padding: 14, background: 'var(--gl-surface)', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-lg)', boxShadow: 'var(--gl-shadow)', width: '100%' }}>{items.map(([ic, l, c]) => <div key={l} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}><div style={{ width: 46, height: 46, borderRadius: 14, background: `color-mix(in srgb, ${c} 16%, transparent)`, color: c, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><GLIcon name={ic} size={20} /></div><span style={{ fontSize: 11, color: 'var(--gl-fg-2)' }}>{l}</span></div>)}</div>;
+}
+function AudioBubble({ me }) {
+  return <div style={{ display: 'flex', justifyContent: me ? 'flex-end' : 'flex-start' }}><div style={{ display: 'flex', alignItems: 'center', gap: 10, background: me ? 'var(--gl-blue-500)' : '#292D38', padding: '10px 12px', borderRadius: 14, minWidth: 200 }}><button style={{ width: 30, height: 30, borderRadius: 999, background: me ? 'rgba(255,255,255,.2)' : 'var(--gl-blue-500)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><GLIcon name="play" size={14} /></button><div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>{[8, 14, 20, 12, 24, 16, 10, 18, 8, 14, 22, 9].map((h, i) => <div key={i} style={{ width: 2.5, height: h, borderRadius: 2, background: me ? 'rgba(255,255,255,.6)' : 'var(--gl-fg-3)' }} />)}</div><span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: me ? 'rgba(255,255,255,.8)' : 'var(--gl-fg-3)' }}>0:14</span></div></div>;
+}
+function VideoBubble() {
+  return <div style={{ width: 200, borderRadius: 14, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg,#2A3142,#1A1B21)', border: '1px solid var(--gl-border)' }}><div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 46, height: 46, borderRadius: 999, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><GLIcon name="play" size={20} /></div></div><div style={{ position: 'absolute', bottom: 8, left: 10, fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: '#fff', background: 'rgba(0,0,0,.5)', padding: '2px 6px', borderRadius: 4 }}>0:42</div></div>;
+}
+function PollBubble() {
+  const opts = [['Q1 budget review', 62], ['Defer to Q2', 28], ['Cancel', 10]];
+  return <div style={{ width: 260, background: '#292D38', borderRadius: 14, padding: 14 }}><div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--gl-fg-1)', marginBottom: 12 }}>Next finance meeting?</div>{opts.map(([l, p], i) => <div key={l} style={{ marginBottom: 10 }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--gl-fg-1)', marginBottom: 5 }}><span>{l}</span><span style={{ fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-3)' }}>{p}%</span></div><div style={{ height: 6, background: 'var(--gl-input-bg)', borderRadius: 999 }}><div style={{ width: p + '%', height: '100%', background: i === 0 ? 'var(--gl-blue-500)' : 'var(--gl-border-strong)', borderRadius: 999 }} /></div></div>)}<div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)', marginTop: 4 }}>24 votes · ends in 2h</div></div>;
+}
+function MediaPreview() {
+  return <div style={{ width: 200, borderRadius: 'var(--gl-radius-lg)', overflow: 'hidden', border: '1px solid var(--gl-border)' }}><div style={{ height: 110, background: 'linear-gradient(135deg,#3A4257,#222633)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gl-fg-3)' }}><GLIcon name="image" size={28} /></div><div style={{ padding: '8px 10px', background: 'var(--gl-surface)' }}><div style={{ fontSize: 12, color: 'var(--gl-fg-1)', fontWeight: 600 }}>site-photo-A92.jpg</div><div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)', marginTop: 2 }}>JPG · 1.2 MB</div></div></div>;
+}
+function PinnedBar() {
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--gl-surface)', borderInlineStart: '3px solid var(--gl-blue-500)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-sm)', width: '100%' }}><GLIcon name="pin" size={15} color="var(--gl-blue-500)" /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--gl-blue-500)' }}>Pinned</div><div style={{ fontSize: 12.5, color: 'var(--gl-fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Q4 close is Dec 31 — submit entries by 28th.</div></div><GLIcon name="close" size={14} color="var(--gl-fg-3)" /></div>;
+}
+function NotifTile({ unread }) {
+  return <div style={{ display: 'flex', gap: 12, padding: '12px 4px', alignItems: 'flex-start' }}><DSAvatar name="Controller" color="var(--gl-success-500)" /><div style={{ flex: 1 }}><div style={{ fontSize: 13.5, color: 'var(--gl-fg-1)' }}><strong>Controller</strong> approved wire EXT-2024-0311</div><div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)', marginTop: 3 }}>2 min ago</div></div>{unread && <DSBadge dot />}</div>;
+}
+function FileCard({ status }) {
+  const map = { uploading: { p: 64, pill: <DSPill tone="info">Uploading</DSPill>, c: 'var(--gl-blue-500)' }, paused: { p: 40, pill: <DSPill tone="warning">Paused</DSPill>, c: 'var(--gl-warning-500)' }, failed: { p: 80, pill: <DSPill tone="danger">Failed</DSPill>, c: 'var(--gl-danger-500)' }, completed: { p: 100, pill: <DSPill tone="success">Completed</DSPill>, c: 'var(--gl-success-500)' } }[status];
+  return <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: 'var(--gl-bg)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)' }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ color: map.c, display: 'flex' }}><GLIcon name="doc" size={20} /></span><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, color: 'var(--gl-fg-1)', fontWeight: 600 }}>invoice-Q4.pdf</div><div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)' }}>PDF · 248 KB</div></div>{map.pill}</div><div style={{ height: 5, background: 'var(--gl-input-bg)', borderRadius: 999 }}><div style={{ width: map.p + '%', height: '100%', background: map.c, borderRadius: 999, transition: 'width var(--gl-dur-base)' }} /></div></div>;
+}
+function ClubCard() {
+  return <div style={{ width: '100%', borderRadius: 'var(--gl-radius-lg)', overflow: 'hidden', border: '1px solid var(--gl-border)', background: 'var(--gl-surface)' }}><div style={{ height: 70, background: 'linear-gradient(120deg,#4A7CFF,#1DB88A)' }} /><div style={{ padding: '0 16px 16px', marginTop: -22 }}><div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--gl-surface)', border: '2px solid var(--gl-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--gl-shadow)' }}><GLIcon name="grid" size={22} color="var(--gl-blue-500)" /></div><div style={{ fontWeight: 700, fontSize: 15, marginTop: 10, color: 'var(--gl-fg-1)' }}>Finance Team</div><div style={{ fontSize: 12, color: 'var(--gl-fg-3)', marginTop: 2 }}>12 members · 3 rooms</div><div style={{ marginTop: 12 }}><DSButton variant="secondary" size="sm">Open</DSButton></div></div></div>;
+}
+function MemberTile() {
+  return <div style={{ width: '100%' }}><DSCard pad={12}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><div style={{ position: 'relative' }}><DSAvatar name="Khalid Saleh" /><span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 999, background: 'var(--gl-success-500)', border: '2px solid var(--gl-surface)' }} /></div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600 }}>Khalid Saleh</div><div style={{ fontSize: 12, color: 'var(--gl-fg-3)', marginTop: 2 }}>Store Manager</div></div><DSPill tone="info">Admin</DSPill></div></DSCard></div>;
+}
+function TaskCard() {
+  return <div style={{ width: '100%' }}><DSCard pad={14}><div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}><div style={{ width: 18, height: 18, borderRadius: 5, border: '2px solid var(--gl-border-strong)', marginTop: 1 }} /><div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--gl-fg-1)' }}>Reconcile Q4 bank statements</div><div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}><DSPill tone="warning">Due Dec 28</DSPill><span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>· 3 subtasks</span></div></div><DSAvatar name="Layla Ahmed" size={26} /></div></DSCard></div>;
+}
+function RoomCard() {
+  return <div style={{ width: '100%' }}><DSCard pad={14}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb, var(--gl-blue-500) 16%, transparent)', color: 'var(--gl-blue-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><GLIcon name="inbox" size={20} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Audit Prep</span><span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>14:20</span></div><div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}><span style={{ fontSize: 12.5, color: 'var(--gl-fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>Layla: uploaded the trial balance</span><DSBadge count={2} /></div></div></div></DSCard></div>;
+}
+
+function App() {
+  return (
+    <Shell title="Domain Components" subtitle="GeniusLink Design System · V2 Stage C">
+      <Section title="Chat Bubbles" desc="Incoming & outgoing, with delivery status: sending · sent · delivered · read · failed." cols="repeat(auto-fill, minmax(300px, 1fr))">
+        <Spec label="Conversation"><div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}><Bubble text="Did the Q4 entries post?" time="14:18" /><Bubble me text="Yes — all balanced." time="14:19" status="read" /><Bubble me text="Sending the report now." time="14:20" status="delivered" /></div></Spec>
+        <Spec label="Status ticks"><div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}><Bubble me text="Sending…" time="14:21" status="sending" /><Bubble me text="Sent" time="14:21" status="sent" /><Bubble me text="Delivered" time="14:21" status="delivered" /><Bubble me text="Read" time="14:21" status="read" /><Bubble me text="Failed to send" time="14:22" status="failed" /></div></Spec>
+      </Section>
+
+      <Section title="Composer & Attachment Menu" cols="repeat(auto-fill, minmax(300px, 1fr))">
+        <Spec label="Message composer"><Composer /></Spec>
+        <Spec label="Attachment menu"><AttachMenu /></Spec>
+        <Spec label="Pinned message bar"><PinnedBar /></Spec>
+      </Section>
+
+      <Section title="Media Messages">
+        <Spec label="Audio bubble"><div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}><AudioBubble /><AudioBubble me /></div></Spec>
+        <Spec label="Video bubble"><VideoBubble /></Spec>
+        <Spec label="Poll bubble"><PollBubble /></Spec>
+        <Spec label="Media preview"><MediaPreview /></Spec>
+      </Section>
+
+      <Section title="File Attachment — upload states" desc="Uploading · Paused · Failed · Completed.">
+        <Spec label="Uploading"><FileCard status="uploading" /></Spec>
+        <Spec label="Paused"><FileCard status="paused" /></Spec>
+        <Spec label="Failed"><FileCard status="failed" /></Spec>
+        <Spec label="Completed"><FileCard status="completed" /></Spec>
+      </Section>
+
+      <Section title="App Entities" desc="Club card · Member tile · Task card · Room card — generic, no business-model coupling." cols="repeat(auto-fill, minmax(260px, 1fr))">
+        <Spec label="Club card"><ClubCard /></Spec>
+        <Spec label="Member tile"><MemberTile /></Spec>
+        <Spec label="Task card"><TaskCard /></Spec>
+        <Spec label="Room card"><RoomCard /></Spec>
+        <Spec label="Notification tile"><div style={{ width: '100%' }}><NotifTile unread /><DSDivider /><NotifTile /></div></Spec>
+      </Section>
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
