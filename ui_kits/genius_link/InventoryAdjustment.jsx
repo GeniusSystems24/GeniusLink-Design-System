@@ -2,7 +2,7 @@
 // Screen: Inventory Adjustment — physical stock-take reconciliation
 
 function InventoryAdjustment({ onCancel, onCreate }) {
-  const { Static, SelectField, UploadDropzone } = window._invShared;
+  const { Static, SelectField, UploadDropzone, WorkflowStrip } = window._invShared;
   const [items, setItems] = React.useState([
     { sku: 'STL-44021', name: 'Structural Steel I-Beam',  unit: 'PCS', system: 142, counted: 140, cost: 450.00,  reason: 'Damaged · 2 units' },
     { sku: 'CMT-90112', name: 'Portland Cement Type I',   unit: 'BAG', system: 1820, counted: 1834, cost: 24.50, reason: 'Receiving miscount · +14' },
@@ -16,6 +16,8 @@ function InventoryAdjustment({ onCancel, onCreate }) {
     <Page
       breadcrumb={['Commercial', 'Inventory', 'Adjustment']}
       title="Inventory Adjustment">
+
+      <WorkflowStrip steps={['Draft', 'Approval', 'Posted', 'Audited']} current={0} accent="#F97316" />
 
       <Card padding={20}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24 }}>
@@ -34,10 +36,10 @@ function InventoryAdjustment({ onCancel, onCreate }) {
           subtitle="Net financial impact of this stock reconciliation"
           marker="orange" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-          <Tile label="Lines Adjusted" value={items.length} />
-          <Tile label="Items Lost" value={items.filter(it => it.counted < it.system).length}
+          <AdjTile label="Lines Adjusted" value={items.length} />
+          <AdjTile label="Items Lost" value={items.filter(it => it.counted < it.system).length}
                 color="#EF4444" />
-          <Tile label="Net Adjustment" value={fmt(totalDelta)}
+          <AdjTile label="Net Adjustment" value={adjFmt(totalDelta)}
                 color={totalDelta >= 0 ? '#1DB88A' : '#EF4444'}
                 currency="SAR"
                 big />
@@ -56,7 +58,7 @@ function InventoryAdjustment({ onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Documentation &amp; Approval" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Textarea label="Adjustment Notes"
                     placeholder="Auditor name, witness, count session reference…"
                     value={note} onChange={setNote} rows={5} />
@@ -133,7 +135,7 @@ function AdjustmentTable({ items, onChange }) {
             <span style={{
               fontFamily: 'var(--gl-font-mono)', textAlign: 'right',
               fontWeight: 600, color: tone,
-            }}>{positive ? '+' : ''}{fmt(dValue)}</span>
+            }}>{positive ? '+' : ''}{adjFmt(dValue)}</span>
             <span style={{ color: 'var(--gl-fg-2)', fontSize: 12 }}>{it.reason}</span>
             <button onClick={() => onChange(items.filter((_, j) => j !== i))} style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
@@ -146,7 +148,7 @@ function AdjustmentTable({ items, onChange }) {
   );
 }
 
-function Tile({ label, value, currency, color, big }) {
+function AdjTile({ label, value, currency, color, big }) {
   return (
     <div style={{
       padding: 20,
@@ -174,7 +176,7 @@ function Tile({ label, value, currency, color, big }) {
   );
 }
 
-function fmt(n) {
+function adjFmt(n) {
   const sign = n < 0 ? '-' : '';
   return sign + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

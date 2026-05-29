@@ -1,12 +1,26 @@
-/* global React, Card, SectionHeader, Field, Select, Textarea, Button, IconBtn, Page, Icon, TotalsStrip, LedgerTable */
+/* global React, Card, SectionHeader, Field, Select, Textarea, Button, IconBtn, Page, Icon, TotalsStrip, LedgerTable, EditableTable */
 // Screen: Opening Journal Entry
+
+const OPENING_LINE_COLS = [
+  { key: 'account',     label: 'Account',     w: 280, type: 'text', required: true, placeholder: 'Select account…' },
+  { key: 'currency',    label: 'Currency',    w: 110, type: 'enum', opts: ['SAR','USD','EUR'] },
+  { key: 'debit',       label: 'Debit',       w: 140, type: 'num',  align: 'right', mono: true },
+  { key: 'credit',      label: 'Credit',      w: 140, type: 'num',  align: 'right', mono: true },
+  { key: 'description', label: 'Description', w: 240, type: 'text' },
+];
 
 function OpeningJournalEntry({ onCancel, onCreate }) {
   const [lines, setLines] = React.useState([
-    { account: 'Cash Box (1001)', currency: 'SAR', amount: '+5,000.00', description: 'Opening balance' },
-    { account: 'Capital Account (3001)', currency: 'SAR', amount: '-5,000.00', description: 'Owner investment' },
+    { account: 'Cash Box (1001)',         currency: 'SAR', debit: '5,000.00', credit: '',         description: 'Opening balance' },
+    { account: 'Capital Account (3001)',  currency: 'SAR', debit: '',         credit: '5,000.00', description: 'Owner investment' },
   ]);
   const [note, setNote] = React.useState('');
+
+  const sum = (key) => lines.reduce((s, l) => s + (parseFloat(String(l[key]).replace(/,/g, '')) || 0), 0);
+  const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalDr = sum('debit');
+  const totalCr = sum('credit');
+  const diff = totalDr - totalCr;
 
   return (
     <Page
@@ -37,19 +51,24 @@ function OpeningJournalEntry({ onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Transfer Lines" marker="green" />
-        <TransferLinesTable lines={lines} onChange={setLines} />
+        <EditableTable
+          columns={OPENING_LINE_COLS}
+          rows={lines}
+          onChange={setLines}
+          addRowLabel="Add Line"
+          emptyRow={() => ({ account: '', currency: 'SAR', debit: '', credit: '', description: '' })} />
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          paddingTop: 8,
+          paddingTop: 4,
         }}>
           <div style={{
             fontSize: 12, color: 'var(--gl-fg-3)', fontStyle: 'italic', maxWidth: 320,
-          }}>To add a new row, simply start entering data in the last empty row.</div>
-          <TotalsStrip debits="5,000.00" credits="5,000.00" difference="0.00" />
+          }}>Debits must equal credits before this entry can be posted.</div>
+          <TotalsStrip debits={fmt(totalDr)} credits={fmt(totalCr)} difference={fmt(Math.abs(diff))} />
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
         <Card padding={20}>
           <SectionHeader title="Internal Notes" marker="orange" />
           <textarea
@@ -128,69 +147,6 @@ function SelectInput({ value, options }) {
         color: 'var(--gl-fg-3)', display: 'flex', pointerEvents: 'none',
       }}>
         <Icon name="chevDown" size={14} />
-      </div>
-    </div>
-  );
-}
-
-function TransferLinesTable({ lines, onChange }) {
-  const cols = '40px 2fr 0.8fr 1.2fr 1.8fr 40px';
-  return (
-    <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: cols, gap: 10,
-        padding: '0 0 12px',
-        fontWeight: 700, fontSize: 10, letterSpacing: '0.05em',
-        textTransform: 'uppercase', color: 'var(--gl-fg-3)',
-        borderBottom: '1px solid var(--gl-border)',
-      }}>
-        <span>#</span><span>Account</span><span>Currency</span>
-        <span style={{ textAlign: 'right' }}>Amount $</span>
-        <span>Description</span><span style={{ textAlign: 'right' }}>Delete</span>
-      </div>
-      {lines.map((l, i) => {
-        const amountNum = parseFloat(l.amount.replace(/[+,]/g, '')) || 0;
-        const color = amountNum > 0 ? '#1DB88A' : '#EF4444';
-        return (
-          <div key={i} style={{
-            display: 'grid', gridTemplateColumns: cols, gap: 10,
-            padding: '14px 0', alignItems: 'center',
-            fontSize: 13, color: 'var(--gl-fg-1)',
-            borderBottom: '1px solid var(--gl-border)',
-          }}>
-            <span style={{ fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-3)' }}>
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <span style={{ fontWeight: 600 }}>{l.account}</span>
-            <span>{l.currency}</span>
-            <span style={{ fontFamily: 'var(--gl-font-mono)', textAlign: 'right', color, fontWeight: 600 }}>
-              {l.amount}
-            </span>
-            <span style={{ color: 'var(--gl-fg-2)' }}>{l.description}</span>
-            <button style={{
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              color: 'var(--gl-fg-3)', justifySelf: 'end', padding: 4,
-            }}
-              onClick={() => onChange(lines.filter((_, j) => j !== i))}>
-              <Icon name="trash" size={16} />
-            </button>
-          </div>
-        );
-      })}
-      {/* empty row */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: cols, gap: 10,
-        padding: '14px 0', alignItems: 'center',
-        fontSize: 13, color: 'var(--gl-fg-3)', fontStyle: 'italic',
-      }}>
-        <span style={{ fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-4)' }}>
-          {String(lines.length + 1).padStart(2, '0')}
-        </span>
-        <span>Select account…</span>
-        <span>SAR</span>
-        <span style={{ fontFamily: 'var(--gl-font-mono)', textAlign: 'right' }}>0.00</span>
-        <span>—</span>
-        <span></span>
       </div>
     </div>
   );

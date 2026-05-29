@@ -37,6 +37,19 @@ const ICON_PATHS = {
   user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z',
   doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6|M16 13H8|M16 17H8|M10 9H8',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9 1.65 1.65 0 0 0 4.27 7.18l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+  globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M2 12h20|M12 2a15 15 0 0 1 0 20|M12 2a15 15 0 0 0 0 20',
+  percent: 'M19 5L5 19|M6.5 5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z|M17.5 16a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
+  hash: 'M4 9h16|M4 15h16|M10 3L8 21|M16 3l-2 18',
+  refresh: 'M23 4v6h-6|M1 20v-6h6|M3.5 9a9 9 0 0 1 14.85-3.36L23 10|M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9|M13.7 21a2 2 0 0 1-3.4 0',
+  mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z|M22 6l-10 7L2 6',
+  card: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z|M2 10h20',
+  link: 'M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1',
+  database: 'M12 8c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3z|M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5|M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6',
+  plug: 'M9 2v6|M15 2v6|M6 8h12v3a6 6 0 0 1-12 0V8z|M12 17v5',
+  key: 'M14 7a4 4 0 1 0-3.9 5L3 19v2h3l1-1h2v-2h2l1.1-1.1A4 4 0 0 0 14 7z|M15.5 7.5h.01',
+  switch2: 'M16 3h5v5|M21 3l-7 7|M8 21H3v-5|M3 21l7-7',
+  clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M12 6v6l4 2',
 };
 
 function Icon({ name, size = 16, color = 'currentColor', stroke = 1.5 }) {
@@ -127,18 +140,38 @@ function SectionHeader({ title, subtitle, marker = 'blue', right }) {
 }
 
 function Card({ children, padding = 24, style }) {
+  // Compact fields occupy one grid column; everything else spans the full row.
+  const COMPACT = [Field, Select, LockedField, Toggle];
+  // Flatten fragments/arrays so their contents participate in the grid directly.
+  const flatten = (nodes, out) => {
+    React.Children.forEach(nodes, (child) => {
+      if (child && typeof child === 'object' && child.type === React.Fragment) {
+        flatten(child.props.children, out);
+      } else {
+        out.push(child);
+      }
+    });
+    return out;
+  };
+  const cells = flatten(children, []).map((child, i) => {
+    const isEl = child && typeof child === 'object';
+    const compact = isEl && COMPACT.includes(child.type);
+    return (
+      <div key={i} className={compact ? undefined : 'gl-col-full'}
+           style={compact ? undefined : { display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {child}
+      </div>
+    );
+  });
   return (
-    <div style={{
+    <div className="gl-form-grid" style={{
       background: 'var(--gl-surface)',
       border: '1px solid var(--gl-border)',
       borderRadius: 8,
       boxShadow: 'var(--gl-shadow)',
       padding,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 24,
       ...style,
-    }}>{children}</div>
+    }}>{cells}</div>
   );
 }
 
@@ -454,12 +487,22 @@ function Breadcrumb({ items = [] }) {
       alignItems: 'center',
       flexWrap: 'wrap',
     }}>
-      {items.map((it, i) => (
-        <React.Fragment key={i}>
-          <span style={{ opacity: i === items.length - 1 ? 1 : 0.7 }}>{it}</span>
-          {i < items.length - 1 && <span style={{ color: 'var(--gl-fg-3)' }}>•</span>}
-        </React.Fragment>
-      ))}
+      {items.map((it, i) => {
+        const obj = it && typeof it === 'object' ? it : { label: it };
+        const last = i === items.length - 1;
+        const clickable = obj.onClick && !last;
+        return (
+          <React.Fragment key={i}>
+            <span
+              onClick={clickable ? obj.onClick : undefined}
+              style={{ opacity: last ? 1 : 0.7, cursor: clickable ? 'pointer' : 'default' }}
+              onMouseEnter={clickable ? (e) => { e.currentTarget.style.opacity = 1; } : undefined}
+              onMouseLeave={clickable ? (e) => { e.currentTarget.style.opacity = 0.7; } : undefined}
+            >{obj.label}</span>
+            {!last && <span style={{ color: 'var(--gl-fg-3)' }}>•</span>}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }
@@ -607,9 +650,10 @@ function Footer({ left = '© 2024 GeniusLink · System Status: Operational', lin
 function Page({ breadcrumb, title, titleArabic, titleRight, children }) {
   return (
     <div style={{
-      maxWidth: 720,
+      width: '100%',
+      maxWidth: 940,
       margin: '0 auto',
-      padding: '64px 16px 0',
+      padding: '64px 24px 0',
       display: 'flex',
       flexDirection: 'column',
       gap: 32,

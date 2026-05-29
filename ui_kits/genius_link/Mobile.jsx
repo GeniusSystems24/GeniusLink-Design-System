@@ -30,6 +30,30 @@ function MIcon({ name, size = 20, color = 'currentColor', stroke = 1.6 }) {
     scan: 'M3 7V5a2 2 0 0 1 2-2h2|M17 3h2a2 2 0 0 1 2 2v2|M21 17v2a2 2 0 0 1-2 2h-2|M7 21H5a2 2 0 0 1-2-2v-2|M7 12h10',
     trash: 'M3 6h18|M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6|M10 11v6|M14 11v6',
     download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4|M7 10l5 5 5-5|M12 15V3',
+    minus: 'M5 12h14',
+    box: 'M3 7l9-4 9 4v10l-9 4-9-4z|M3 7l9 4 9-4|M12 11v10',
+    cart: 'M4 5h2l1.6 11h11L21 8H7|M9 20a1 1 0 100-2 1 1 0 000 2z|M17 20a1 1 0 100-2 1 1 0 000 2z',
+    doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6|M8 13h8|M8 17h5',
+    cloud: 'M12 13v8|M8 17l4-4 4 4|M20 16.5A4.5 4.5 0 0 0 16 8h-1.26A7 7 0 1 0 4 15.2',
+    info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M12 16v-4|M12 8h.01',
+    swap: 'M7 10l-4 4 4 4|M3 14h14|M17 14l4-4-4-4|M21 10H7',
+    calendar: 'M5 4h14a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z|M4 9h16|M8 2v4|M16 2v4',
+    pin: 'M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z|M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+    edit: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7|M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z',
+    settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+    building: 'M3 21h18|M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16|M9 9h.01|M13 9h.01|M9 13h.01|M13 13h.01|M9 17h.01|M13 17h.01',
+    globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M2 12h20|M12 2a15 15 0 0 1 0 20|M12 2a15 15 0 0 0 0 20',
+    percent: 'M19 5L5 19|M6.5 5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z|M17.5 16a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
+    refresh: 'M23 4v6h-6|M1 20v-6h6|M3.5 9a9 9 0 0 1 14.85-3.36L23 10|M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
+    bell2: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9|M13.7 21a2 2 0 0 1-3.4 0',
+    mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z|M22 6l-10 7L2 6',
+    card: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z|M2 10h20',
+    link: 'M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1',
+    database: 'M12 8c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3z|M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5|M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6',
+    plug: 'M9 2v6|M15 2v6|M6 8h12v3a6 6 0 0 1-12 0V8z|M12 17v5',
+    key: 'M14 7a4 4 0 1 0-3.9 5L3 19v2h3l1-1h2v-2h2l1.1-1.1A4 4 0 0 0 14 7z|M15.5 7.5h.01',
+    switch2: 'M16 3h5v5|M21 3l-7 7|M8 21H3v-5|M3 21l7-7',
+    clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M12 6v6l4 2',
   };
   const raw = P[name]; if (!raw) return null;
   return (
@@ -127,4 +151,15 @@ function Scroll({ children, pad = 16 }) {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: pad, paddingBottom: 24 }}>{children}</div>;
 }
 
-window._mob = { C, MIcon, Pill, MCard, MField, MBtn, AppBar, TabBar, Scroll };
+// Shared stat tile used across multiple screens (stores, ledger, operations)
+function Mini({ label, value, sub, hi }) {
+  return (
+    <div style={{ padding: 14, background: hi ? `${C.green}14` : C.bg, border: `1px solid ${hi ? C.green + '4D' : C.border}`, borderRadius: 10 }}>
+      <div style={{ fontWeight: 700, fontSize: 9.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.fg3, fontFamily: C.body }}>{label}</div>
+      <div style={{ fontFamily: C.mono, fontSize: 20, fontWeight: 600, color: hi ? C.green : C.fg1, marginTop: 6 }}>{value}</div>
+      {sub && <div style={{ fontFamily: C.mono, fontSize: 10, color: C.fg3, marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+}
+
+window._mob = { C, MIcon, Pill, MCard, MField, MBtn, AppBar, TabBar, Scroll, Mini };

@@ -1,5 +1,12 @@
-/* global React, Page, Card, SectionHeader, Field, Textarea, Button, IconBtn, Icon, TotalsStrip */
+/* global React, Page, Card, SectionHeader, Field, Textarea, Button, IconBtn, Icon, TotalsStrip, EditableTable */
 // Screen: Create Journal Entry — general multi-line debit/credit entry
+
+const JOURNAL_LINE_COLS = [
+  { key: 'account', label: 'Account',     w: 280, type: 'text', required: true, placeholder: 'Select account…' },
+  { key: 'debit',   label: 'Debit',       w: 140, type: 'num',  align: 'right', mono: true },
+  { key: 'credit',  label: 'Credit',      w: 140, type: 'num',  align: 'right', mono: true },
+  { key: 'desc',    label: 'Description', w: 260, type: 'text' },
+];
 
 function CreateJournalEntry({ onCancel, onCreate }) {
   const [lines, setLines] = React.useState([
@@ -16,7 +23,6 @@ function CreateJournalEntry({ onCancel, onCreate }) {
   const balanced = Math.abs(diff) < 0.005;
 
   const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const cols = '40px 2fr 1fr 1fr 1.6fr 40px';
 
   return (
     <Page breadcrumb={['Accounting', 'Ledger', 'New Entry']} title="Create Journal Entry">
@@ -31,44 +37,12 @@ function CreateJournalEntry({ onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Entry Lines" subtitle="Each line is a single account debit or credit" marker="green" />
-        <div>
-          <div style={{
-            display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '0 0 12px',
-            fontWeight: 700, fontSize: 10, letterSpacing: '0.05em',
-            textTransform: 'uppercase', color: 'var(--gl-fg-3)',
-            borderBottom: '1px solid var(--gl-border)',
-          }}>
-            <span>#</span><span>Account*</span>
-            <span style={{ textAlign: 'right' }}>Debit</span>
-            <span style={{ textAlign: 'right' }}>Credit</span>
-            <span>Description</span><span></span>
-          </div>
-          {lines.map((l, i) => (
-            <div key={i} style={{
-              display: 'grid', gridTemplateColumns: cols, gap: 10,
-              padding: '12px 0', alignItems: 'center',
-              borderBottom: '1px solid var(--gl-border)',
-            }}>
-              <span style={{ fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-3)', fontSize: 13 }}>{String(i + 1).padStart(2, '0')}</span>
-              <JCell value={l.account} />
-              <JCell value={l.debit} mono align="right" placeholder="0.00" />
-              <JCell value={l.credit} mono align="right" placeholder="0.00" />
-              <JCell value={l.desc} />
-              <IconBtn icon="trash" variant="danger" size={32}
-                       onClick={() => setLines(lines.filter((_, j) => j !== i))} />
-            </div>
-          ))}
-          {/* empty row */}
-          <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '12px 0', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-4)', fontSize: 13 }}>{String(lines.length + 1).padStart(2, '0')}</span>
-            <JCell placeholder="Select account…" />
-            <JCell mono align="right" placeholder="0.00" />
-            <JCell mono align="right" placeholder="0.00" />
-            <JCell placeholder="—" />
-            <IconBtn icon="plus" size={32}
-                     onClick={() => setLines([...lines, { account: '', debit: '', credit: '', desc: '' }])} />
-          </div>
-        </div>
+        <EditableTable
+          columns={JOURNAL_LINE_COLS}
+          rows={lines}
+          onChange={setLines}
+          addRowLabel="Add Line"
+          emptyRow={() => ({ account: '', debit: '', credit: '', desc: '' })} />
 
         {/* Balance bar */}
         <div style={{
@@ -98,7 +72,7 @@ function CreateJournalEntry({ onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Documentation" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Textarea label="Memo" placeholder="Reason for this entry, references, approvals…"
                     value={note} onChange={setNote} rows={5} />
           <div>

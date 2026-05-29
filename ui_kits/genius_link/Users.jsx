@@ -92,7 +92,7 @@ function CreateUser({ onCancel, onCreate }) {
     <Page breadcrumb={['Administration', 'Users', 'Invite']} title="Invite User">
       <Card>
         <SectionHeader title="Identity" subtitle="The new member's name and contact" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Field label="Name English" required placeholder="e.g. Omar Hassan" value={name.en} onChange={(v) => setName({ ...name, en: v })} />
           <Field label="الاسم بالعربية" placeholder="مثال: عمر حسن" dir="rtl" value={name.ar} onChange={(v) => setName({ ...name, ar: v })} />
           <Field label="Work Email" required placeholder="name@geniuslink.sa" type="email" />
@@ -102,7 +102,7 @@ function CreateUser({ onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Access" subtitle="Role determines default permissions" marker="green" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <window._cfgShared.CurSelect label="Role" value="Accountant" options={['Administrator', 'Controller', 'Accountant', 'Store Manager', 'Viewer']} />
           <window._cfgShared.CurSelect label="Default Store" value="All Stores" options={['All Stores', 'Downtown Central', 'King Fahd Warehouse', 'Jeddah Showroom']} />
         </div>
@@ -153,13 +153,34 @@ function UserDetails({ onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Account Information" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="User ID" value="12" mono />
           <LockedField label="Role" value="Accountant" />
           <LockedField label="Default Store" value="All Stores" />
           <LockedField label="Two-Factor Auth" value="Enabled" />
           <LockedField label="Joined" value="Apr 12, 2024" />
           <LockedField label="Last Sign-In" value="Dec 19, 2025 08:55" />
+        </div>
+      </Card>
+
+      <Card>
+        <SectionHeader title="Active Sessions" subtitle="Devices currently signed in" marker="orange"
+                       right={<Button variant="secondary" icon="lock">Revoke all</Button>} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            { dev: 'MacBook Pro · Chrome', loc: 'Riyadh, SA', ip: '10.4.22.18', when: 'Active now', current: true },
+            { dev: 'iPhone 15 · GeniusLink App', loc: 'Riyadh, SA', ip: '10.4.22.51', when: '2 hours ago', current: false },
+            { dev: 'Windows · Edge', loc: 'Jeddah, SA', ip: '94.12.8.140', when: 'Yesterday', current: false },
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: 'var(--gl-bg)', border: '1px solid var(--gl-border)', borderRadius: 6 }}>
+              <span style={{ color: 'var(--gl-fg-3)', display: 'flex' }}><Icon name={s.current ? 'briefcase' : 'compass'} size={18} /></span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-1)', display: 'flex', alignItems: 'center', gap: 8 }}>{s.dev}{s.current && <StatusPill tone="success" size="sm">This device</StatusPill>}</div>
+                <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)', marginTop: 3 }}>{s.loc} · {s.ip} · {s.when}</div>
+              </div>
+              {!s.current && <Button variant="danger" icon="trash">Revoke</Button>}
+            </div>
+          ))}
         </div>
       </Card>
 

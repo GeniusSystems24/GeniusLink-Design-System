@@ -2,6 +2,7 @@
 // Screen: Issue Inventory
 
 function IssueInventory({ onCancel, onIssue }) {
+  const { WorkflowStrip, DocMeta } = window._invShared;
   const [items, setItems] = React.useState([
     { product: 'Structural Steel', unit: 'Unit', qty: 12, price: 450, freeQty: 0, recv: 12, expDate: '12/31/2025' },
   ]);
@@ -13,6 +14,9 @@ function IssueInventory({ onCancel, onIssue }) {
     <Page
       breadcrumb={['Commercial', 'Inventory', 'Issue']}
       title="Issue Inventory">
+
+      <WorkflowStrip steps={['Draft', 'Approval', 'Posted', 'Delivered']} current={0} accent="#F97316" />
+
       {/* Header strip — uses light/transparent surface */}
       <Card padding={20}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24 }}>
@@ -20,6 +24,14 @@ function IssueInventory({ onCancel, onIssue }) {
           <LabeledSelect label="Currency" value="USD — US Dollar" options={['USD — US Dollar', 'SAR — Saudi Riyal', 'EUR — Euro']} />
           <Field label="Store" placeholder="Search store…" required />
           <Field label="Customer Account" placeholder="Optional" />
+        </div>
+        <div style={{ borderTop: '1px solid var(--gl-border)', paddingTop: 16 }}>
+          <DocMeta items={[
+            { label: 'Requisition', value: 'REQ-2024-0301', icon: 'doc', mono: true },
+            { label: 'Project', value: 'A-92 · Tower', icon: 'briefcase' },
+            { label: 'Requested by', value: 'Site Mgr · Omar', icon: 'user' },
+            { label: 'Needed', value: 'Dec 20, 2025', icon: 'clock' },
+          ]} />
         </div>
       </Card>
 
@@ -45,7 +57,7 @@ function IssueInventory({ onCancel, onIssue }) {
       {/* Documentation & compliance */}
       <Card>
         <SectionHeader title="Documentation & Compliance" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Textarea label="Transaction Notes"
                     placeholder="Specify project reference, site manager approval, or specific handling instructions…"
                     value={note} onChange={setNote} rows={5} />

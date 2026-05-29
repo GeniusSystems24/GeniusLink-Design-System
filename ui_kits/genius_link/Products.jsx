@@ -1,5 +1,22 @@
-/* global React, Page, Card, SectionHeader, Field, Textarea, Button, Icon, StatusPill, LockedField */
+/* global React, Page, Card, SectionHeader, Field, Textarea, Button, Icon, StatusPill, LockedField, EditableTable */
 // Stage 2 — Products: List + Create + Details
+
+const PRODUCT_STOCK_COLS = [
+  { key: 'code',  label: 'Store Code',    w: 130, type: 'text', mono: true, required: true },
+  { key: 'store', label: 'Store',         w: 240, type: 'text', required: true },
+  { key: 'qty',   label: 'Opening Qty',   w: 130, type: 'num',  align: 'right', mono: true },
+  { key: 'cost',  label: 'Cost / Unit',   w: 130, type: 'num',  align: 'right', mono: true },
+  { key: 'bin',   label: 'Bin / Location',w: 140, type: 'text' },
+];
+
+const PRODUCT_UOM_COLS = [
+  { key: 'code',    label: 'Code',          w: 90,  type: 'text', mono: true, required: true },
+  { key: 'name',    label: 'Name',          w: 170, type: 'text', required: true },
+  { key: 'arName',  label: 'Arabic',        w: 140, type: 'text' },
+  { key: 'factor',  label: 'Factor × Base', w: 130, type: 'num',  align: 'right', mono: true, required: true },
+  { key: 'barcode', label: 'Barcode',       w: 160, type: 'text', mono: true },
+  { key: 'base',    label: 'Base Unit',     w: 110, type: 'enum', opts: ['No', 'Yes'] },
+];
 
 const PRODUCTS = [
   { sku: 'STL-44021', en: 'Structural Steel I-Beam', ar: 'كمرة فولاذية',     cat: 'Steel',     unit: 'PCS', cost: '450.00', stock: 142,  status: 'in-stock' },
@@ -13,21 +30,34 @@ const PRODUCTS = [
 function ProductsList({ onCreate, onOpen }) {
   const [query, setQuery] = React.useState('');
   const [cat, setCat] = React.useState('all');
+  const [view, setView] = React.useState('list'); // list | grid
+  const [lowOnly, setLowOnly] = React.useState(false);
+  const [page, setPage] = React.useState(1);
+  const perPage = view === 'grid' ? 6 : 5;
   const cats = ['all', ...Array.from(new Set(PRODUCTS.map(p => p.cat)))];
 
-  const visible = PRODUCTS.filter((p) => {
+  const filtered = PRODUCTS.filter((p) => {
     if (cat !== 'all' && p.cat !== cat) return false;
+    if (lowOnly && p.status === 'in-stock') return false;
     if (!query) return true;
     const q = query.toLowerCase();
     return p.en.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.ar.includes(query);
   });
+  React.useEffect(() => { setPage(1); }, [cat, query, view, lowOnly]);
+
+  const stockValue = PRODUCTS.reduce((s, p) => s + p.stock * (parseFloat(p.cost) || 0), 0);
+  const lowCount = PRODUCTS.filter(p => p.status === 'low').length;
+  const outCount = PRODUCTS.filter(p => p.status === 'out').length;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const visible = filtered.slice((page - 1) * perPage, page * perPage);
   const grid = '120px 1.8fr 1fr 0.6fr 1fr 0.9fr 100px 40px';
 
   return (
     <Page breadcrumb={['Stores & Products', 'Products']} title="Products"
       titleRight={<Button variant="primary" icon="plus" onClick={onCreate}>Create Product</Button>}>
       <Card padding={20}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 4, background: 'var(--gl-input-bg)', padding: 4, borderRadius: 6, border: '1px solid var(--gl-border)', flexWrap: 'wrap' }}>
             {cats.map((c) => (
               <button key={c} onClick={() => setCat(c)}
@@ -41,36 +71,107 @@ function ProductsList({ onCreate, onOpen }) {
                 }}>{c}</button>
             ))}
           </div>
-          <div style={{ position: 'relative', flex: '0 0 280px' }}>
-            <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--gl-fg-3)', display: 'flex', pointerEvents: 'none' }}>
-              <Icon name="search" size={14} />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: '0 0 240px' }}>
+              <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--gl-fg-3)', display: 'flex', pointerEvents: 'none' }}>
+                <Icon name="search" size={14} />
+              </div>
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search product or SKU…"
+                style={{ width: '100%', height: 36, padding: '0 16px 0 40px', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border-strong)', borderRadius: 4, fontFamily: 'var(--gl-font-body)', fontSize: 13, color: 'var(--gl-fg-1)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search product or SKU…"
-              style={{ width: '100%', height: 40, padding: '0 16px 0 40px', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border-strong)', borderRadius: 4, fontFamily: 'var(--gl-font-body)', fontSize: 13, color: 'var(--gl-fg-1)', outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', background: 'var(--gl-input-bg)', padding: 3, borderRadius: 4, border: '1px solid var(--gl-border)' }}>
+              {[['list','ledger'], ['grid','briefcase']].map(([v, ic]) => (
+                <button key={v} onClick={() => setView(v)} title={`${v} view`} style={{
+                  width: 32, height: 28, borderRadius: 3, border: 'none', cursor: 'pointer',
+                  background: view === v ? 'var(--gl-surface)' : 'transparent',
+                  color: view === v ? '#4A7CFF' : 'var(--gl-fg-3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: view === v ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
+                }}><Icon name={ic} size={14} /></button>
+              ))}
+            </div>
           </div>
+        </div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--gl-border)' }}>
+          <div style={{ display: 'flex', gap: 28, fontFamily: 'var(--gl-font-mono)', fontSize: 11 }}>
+            <PStat label="Products" value={PRODUCTS.length} />
+            <PStat label="Stock Value SAR" value={stockValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} accent="#1DB88A" />
+            <PStat label="Low" value={lowCount} accent="#F97316" />
+            <PStat label="Out" value={outCount} accent="#EF4444" />
+          </div>
+          <button type="button" onClick={() => setLowOnly(v => !v)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 14px', borderRadius: 999,
+            cursor: 'pointer', fontFamily: 'var(--gl-font-body)', fontWeight: 700, fontSize: 11, letterSpacing: '0.03em',
+            background: lowOnly ? 'rgba(249,115,22,0.14)' : 'transparent',
+            border: `1px solid ${lowOnly ? '#F97316' : 'var(--gl-border)'}`,
+            color: lowOnly ? '#F97316' : 'var(--gl-fg-2)', transition: 'all 120ms ease',
+          }}>
+            <Icon name="info" size={13} /> Low &amp; out of stock only
+          </button>
         </div>
       </Card>
 
       <Card padding={0}>
         <div style={{ padding: '20px 24px 0' }}>
-          <SectionHeader title={`${visible.length} Product${visible.length === 1 ? '' : 's'}`} subtitle="Stock totals aggregated across all stores" marker="blue" />
+          <SectionHeader title={`${filtered.length} Product${filtered.length === 1 ? '' : 's'}`}
+                         subtitle={view === 'grid' ? 'Visual gallery view' : 'Stock totals aggregated across all stores'}
+                         marker="blue" />
         </div>
         <div style={{ padding: '20px 24px 24px' }}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '0 0 12px',
-            borderBottom: '1px solid var(--gl-border)',
-            fontWeight: 700, fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--gl-fg-3)',
-          }}>
-            <span>SKU</span><span>Product</span><span>Category</span><span>Unit</span>
-            <span style={{ textAlign: 'right' }}>Unit Cost</span>
-            <span style={{ textAlign: 'right' }}>Stock</span>
-            <span>Status</span><span></span>
-          </div>
-          {visible.map((p) => <ProductRow key={p.sku} p={p} grid={grid} onClick={() => onOpen && onOpen(p)} />)}
-          {visible.length === 0 && <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--gl-fg-3)', fontSize: 13 }}>No products match.</div>}
+          {view === 'list' ? (
+            <React.Fragment>
+              <div style={{
+                display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '0 0 12px',
+                borderBottom: '1px solid var(--gl-border)',
+                fontWeight: 700, fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--gl-fg-3)',
+              }}>
+                <span>SKU</span><span>Product</span><span>Category</span><span>Unit</span>
+                <span style={{ textAlign: 'right' }}>Unit Cost</span>
+                <span style={{ textAlign: 'right' }}>Stock</span>
+                <span>Status</span><span></span>
+              </div>
+              {visible.map((p) => <ProductRow key={p.sku} p={p} grid={grid} onClick={() => onOpen && onOpen(p)} />)}
+            </React.Fragment>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+              {visible.map((p) => <ProductCard key={p.sku} p={p} onClick={() => onOpen && onOpen(p)} />)}
+            </div>
+          )}
+          {filtered.length === 0 && <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--gl-fg-3)', fontSize: 13 }}>No products match.</div>}
+
+          {/* Pagination */}
+          {filtered.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gl-border)' }}>
+              <span style={{ fontSize: 12, color: 'var(--gl-fg-3)', fontFamily: 'var(--gl-font-mono)' }}>
+                Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of {filtered.length}
+              </span>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <PageBtn disabled={page === 1} onClick={() => setPage(page - 1)} icon="back" />
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button key={p} onClick={() => setPage(p)} style={{
+                    minWidth: 30, height: 30, padding: '0 10px', borderRadius: 4,
+                    background: page === p ? '#4A7CFF' : 'transparent',
+                    color: page === p ? '#FFF' : 'var(--gl-fg-2)',
+                    border: page === p ? 'none' : '1px solid var(--gl-border)',
+                    cursor: 'pointer', fontFamily: 'var(--gl-font-mono)', fontSize: 12, fontWeight: 600,
+                  }}>{p}</button>
+                ))}
+                <PageBtn disabled={page === totalPages} onClick={() => setPage(page + 1)} icon="chevRight" />
+              </div>
+            </div>
+          )}
         </div>
       </Card>
     </Page>
+  );
+}
+
+function PStat({ label, value, accent }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gl-fg-3)' }}>{label}</div>
+      <div style={{ fontSize: 17, fontWeight: 600, color: accent || 'var(--gl-fg-1)', marginTop: 4 }}>{value}</div>
+    </div>
   );
 }
 
@@ -103,29 +204,174 @@ function ProductRow({ p, grid, onClick }) {
   );
 }
 
+function ProductCard({ p, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  const tone = p.stock === 0 ? '#EF4444' : (p.status === 'low' ? '#F97316' : '#1DB88A');
+  return (
+    <div onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        padding: 14, borderRadius: 8, cursor: 'pointer',
+        background: 'var(--gl-bg)',
+        border: `1px solid ${hover ? 'var(--gl-border-strong)' : 'var(--gl-border)'}`,
+        display: 'flex', flexDirection: 'column', gap: 10,
+        transition: 'border 150ms ease',
+      }}>
+      <div style={{
+        aspectRatio: '4 / 3', borderRadius: 6,
+        background: 'linear-gradient(135deg, var(--gl-input-bg), var(--gl-surface))',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--gl-fg-4)',
+      }}>
+        <Icon name="scanner" size={32} />
+      </div>
+      <div style={{ minHeight: 36 }}>
+        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--gl-fg-1)', lineHeight: 1.3 }}>{p.en}</div>
+        <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)', marginTop: 4 }}>{p.sku}</div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: 8, borderTop: '1px solid var(--gl-border)' }}>
+        <div>
+          <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 16, fontWeight: 700, color: tone }}>
+            {p.stock.toLocaleString()}
+          </div>
+          <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)' }}>{p.unit} on hand</div>
+        </div>
+        {p.status === 'in-stock' && <StatusPill tone="success" size="sm">In Stock</StatusPill>}
+        {p.status === 'low' && <StatusPill tone="warning" size="sm">Low</StatusPill>}
+        {p.status === 'out' && <StatusPill tone="danger" size="sm">Out</StatusPill>}
+      </div>
+    </div>
+  );
+}
+
+function PageBtn({ icon, disabled, onClick }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      width: 30, height: 30, borderRadius: 4,
+      background: 'transparent',
+      color: disabled ? 'var(--gl-fg-4)' : 'var(--gl-fg-2)',
+      border: '1px solid var(--gl-border)',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      opacity: disabled ? 0.5 : 1,
+    }}><Icon name={icon} size={12} /></button>
+  );
+}
+
 function CreateProduct({ onCancel, onCreate }) {
   const [name, setName] = React.useState({ en: '', ar: '' });
+  const [cost, setCost] = React.useState('450.00');
+  const [price, setPrice] = React.useState('540.00');
+  const [variants, setVariants] = React.useState([
+    { code: 'STL-44021-S', label: 'Small · 4m',  attrs: 'Length: 4m',  cost: '380.00', price: '460.00' },
+    { code: 'STL-44021-M', label: 'Medium · 6m', attrs: 'Length: 6m',  cost: '450.00', price: '540.00' },
+    { code: 'STL-44021-L', label: 'Large · 8m',  attrs: 'Length: 8m',  cost: '520.00', price: '630.00' },
+  ]);
+  const [units, setUnits] = React.useState([
+    { code: 'PCS', name: 'Piece',  arName: 'قطعة',  factor: '1',  barcode: '6 281000 044021', base: 'Yes' },
+    { code: 'BOX', name: 'Box',    arName: 'صندوق', factor: '12', barcode: '6 281000 044038', base: 'No' },
+    { code: 'PLT', name: 'Pallet', arName: 'طبلية', factor: '600',barcode: '',                base: 'No' },
+  ]);
+  const baseUnit = units.find(u => u.base === 'Yes') || units[0];
+  const [stock, setStock] = React.useState([
+    { code: 'ST-001', store: 'Downtown Central',     qty: '0', cost: '0.00', bin: '' },
+    { code: 'ST-002', store: 'King Fahd Warehouse',  qty: '0', cost: '0.00', bin: '' },
+    { code: 'ST-003', store: 'Jeddah Showroom',      qty: '0', cost: '0.00', bin: '' },
+  ]);
+  const totalQty = stock.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
+  const totalVal = stock.reduce((s, r) => s + ((parseFloat(r.qty) || 0) * (parseFloat(r.cost) || 0)), 0);
+  const costN = parseFloat(cost) || 0;
+  const priceN = parseFloat(price) || 0;
+  const marginN = priceN - costN;
+  const marginPct = priceN ? (marginN / priceN) * 100 : 0;
+  const markupPct = costN ? (marginN / costN) * 100 : 0;
+  const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <Page breadcrumb={['Stores & Products', 'Products', 'New']} title="Create Product">
       <Card>
         <SectionHeader title="Product Definition" subtitle="SKU, names and classification" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Field label="SKU" required placeholder="e.g. STL-44021" mono />
           <Field label="Barcode" placeholder="Scan or type" mono />
           <Field label="Name English" required placeholder="e.g. Structural Steel I-Beam" value={name.en} onChange={(v) => setName({ ...name, en: v })} />
           <Field label="الاسم بالعربية" required placeholder="مثال: كمرة فولاذية" dir="rtl" value={name.ar} onChange={(v) => setName({ ...name, ar: v })} />
           <window._cfgShared.CurSelect label="Category" value="Steel" options={['Steel', 'Cement', 'Aggregate', 'Timber', 'Finishing']} />
-          <window._cfgShared.CurSelect label="Unit of Measure" value="PCS" options={['PCS', 'BAG', 'TON', 'SHT', 'L', 'M']} />
+          <window._cfgShared.CurSelect label="Brand / Manufacturer" value="— None —" options={['— None —', 'Saudi Steel Co.', 'Al-Rajhi Cement', 'Yamama']} />
         </div>
       </Card>
 
       <Card>
-        <SectionHeader title="Costing &amp; Pricing" marker="green" />
+        <SectionHeader
+          title="Product Measure Units"
+          subtitle="Define every unit this product is sold or stocked in. The Base unit (factor = 1) is the reference; other units convert against it."
+          marker="blue" />
+        <EditableTable
+          columns={PRODUCT_UOM_COLS}
+          rows={units}
+          onChange={(next) => {
+            // Enforce a single "Yes" base unit (and force its factor to 1)
+            const newlyBase = next.findIndex((u, i) => u.base === 'Yes' && units[i] && units[i].base !== 'Yes');
+            if (newlyBase >= 0) {
+              next = next.map((u, i) => i === newlyBase ? { ...u, base: 'Yes', factor: '1' } : { ...u, base: 'No' });
+            }
+            setUnits(next);
+          }}
+          addRowLabel="Add Unit"
+          emptyRow={() => ({ code: '', name: '', arName: '', factor: '', barcode: '', base: 'No' })}
+          footer={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--gl-fg-3)' }}>
+              <Icon name="info" size={13} />
+              <span>Base: <strong style={{ color: 'var(--gl-fg-1)', fontFamily: 'var(--gl-font-mono)' }}>{baseUnit ? baseUnit.code : '—'}</strong> · {units.length} unit{units.length === 1 ? '' : 's'} defined</span>
+            </div>
+          } />
+      </Card>
+
+      <Card>
+        <SectionHeader title="Costing &amp; Pricing" subtitle="Live margin recalculates as you type" marker="green" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
-          <Field label="Unit Cost (SAR)" placeholder="0.00" mono />
-          <Field label="Selling Price (SAR)" placeholder="0.00" mono />
+          <Field label="Unit Cost (SAR)" required mono value={cost} onChange={setCost} />
+          <Field label="Selling Price (SAR)" required mono value={price} onChange={setPrice} />
           <window._cfgShared.CurSelect label="VAT Rate" value="15%" options={['0%', '5%', '15%']} />
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <MarginTile label="Gross Margin"
+                      value={fmt(marginN)}
+                      sub={`${marginPct.toFixed(1)}% of price`}
+                      color={marginN >= 0 ? '#1DB88A' : '#EF4444'} />
+          <MarginTile label="Markup"
+                      value={`${markupPct.toFixed(1)}%`}
+                      sub={`over ${fmt(costN)} cost`}
+                      color="#4A7CFF" />
+          <MarginTile label="Break-Even Price"
+                      value={fmt(costN * 1.15)}
+                      sub="cost + 15% buffer"
+                      color="#F97316" />
+        </div>
+      </Card>
+
+      <Card>
+        <SectionHeader
+          title="Variants"
+          subtitle="Define size / colour / spec variants — each gets its own SKU and cost"
+          marker="blue" />
+        <EditableTable
+          columns={[
+            { key: 'code',  label: 'Variant SKU', w: 150, type: 'text', mono: true, required: true },
+            { key: 'label', label: 'Label',       w: 180, type: 'text', required: true },
+            { key: 'attrs', label: 'Attributes',  w: 200, type: 'text' },
+            { key: 'cost',  label: 'Cost (SAR)',  w: 110, type: 'num', align: 'right', mono: true },
+            { key: 'price', label: 'Price (SAR)', w: 110, type: 'num', align: 'right', mono: true },
+          ]}
+          rows={variants}
+          onChange={setVariants}
+          addRowLabel="Add Variant"
+          emptyRow={() => ({ code: '', label: '', attrs: '', cost: '', price: '' })}
+          footer={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--gl-fg-3)' }}>
+              <Icon name="info" size={13} />
+              <span>Leave empty if this product has no variants. {variants.length} variant{variants.length === 1 ? '' : 's'} defined.</span>
+            </div>
+          } />
       </Card>
 
       <Card>
@@ -133,12 +379,37 @@ function CreateProduct({ onCancel, onCreate }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
           <Field label="Reorder Level" placeholder="e.g. 50" mono />
           <window._cfgShared.CurSelect label="Default Store" value="Downtown Central" options={['Downtown Central', 'King Fahd Warehouse', 'Jeddah Showroom']} />
-          <Field label="Opening Stock" placeholder="0" mono />
+          <Field label="Lead Time (days)" placeholder="e.g. 7" mono />
         </div>
         <div>
           <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--gl-fg-2)', marginBottom: 8 }}>Product Image</div>
           <window._bankShared.UploadDropzone label="PNG or JPG · square preferred" />
         </div>
+      </Card>
+
+      <Card>
+        <SectionHeader
+          title="Opening Stock by Store"
+          subtitle="Set the initial quantity and unit cost held at each store — edit cells like a spreadsheet"
+          marker="green" />
+        <EditableTable
+          columns={PRODUCT_STOCK_COLS}
+          rows={stock}
+          onChange={setStock}
+          addRowLabel="Add Store"
+          emptyRow={() => ({ code: '', store: '', qty: '0', cost: '0.00', bin: '' })}
+          footer={
+            <div style={{ display: 'flex', gap: 28 }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gl-fg-3)' }}>Total Qty</div>
+                <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 16, fontWeight: 600, color: 'var(--gl-fg-1)', marginTop: 4 }}>{fmt(totalQty)}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gl-fg-3)' }}>Opening Value</div>
+                <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 16, fontWeight: 600, color: 'var(--gl-fg-1)', marginTop: 4 }}>{fmt(totalVal)} <span style={{ fontSize: 11, color: 'var(--gl-fg-3)', fontWeight: 400 }}>SAR</span></div>
+              </div>
+            </div>
+          } />
       </Card>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
@@ -181,13 +452,87 @@ function ProductDetails({ onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Product Information" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="SKU" value="STL-44021" mono />
           <LockedField label="Barcode" value="6 281000 044021" mono />
           <LockedField label="Category" value="Steel" />
           <LockedField label="Unit of Measure" value="PCS" />
           <LockedField label="Selling Price" value="540.00 SAR" />
           <LockedField label="VAT Rate" value="15%" />
+        </div>
+      </Card>
+
+      {/* Suppliers + Units */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+        <Card padding={0}>
+          <div style={{ padding: '20px 24px 0' }}>
+            <SectionHeader title="Preferred Suppliers" subtitle="Ranked by lead time & price" marker="blue" />
+          </div>
+          <div style={{ padding: '16px 24px 24px' }}>
+            {[
+              { name: 'Saudi Steel Co.', code: 'SUP-001', lead: '5 days', price: '442.00', pref: true },
+              { name: 'Gulf Metals Trading', code: 'SUP-014', lead: '9 days', price: '450.00', pref: false },
+              { name: 'Asia Imports Ltd.', code: 'SUP-022', lead: '21 days', price: '418.00', pref: false },
+            ].map((s, i, a) => (
+              <div key={s.code} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 100px', gap: 12, padding: '12px 0', alignItems: 'center', borderBottom: i < a.length - 1 ? '1px solid var(--gl-border)' : 'none', fontSize: 13 }}>
+                <span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--gl-fg-1)' }}>{s.name}</span>
+                    {s.pref && <StatusPill tone="success" size="sm">Preferred</StatusPill>}
+                  </span>
+                  <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>{s.code}</span>
+                </span>
+                <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 12, color: 'var(--gl-fg-2)', textAlign: 'right' }}>{s.lead}</span>
+                <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 12, fontWeight: 600, textAlign: 'right' }}>{s.price} <span style={{ fontSize: 9, color: 'var(--gl-fg-3)' }}>SAR</span></span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card padding={0}>
+          <div style={{ padding: '20px 24px 0' }}>
+            <SectionHeader title="Selling Units & Barcodes" subtitle="Base unit: PCS" marker="green" />
+          </div>
+          <div style={{ padding: '16px 24px 24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 70px 1fr', gap: 12, padding: '0 0 10px', borderBottom: '1px solid var(--gl-border)', fontWeight: 700, fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--gl-fg-3)' }}>
+              <span>Code</span><span>Unit</span><span style={{ textAlign: 'right' }}>×Base</span><span style={{ textAlign: 'right' }}>Barcode</span>
+            </div>
+            {[
+              { code: 'PCS', name: 'Piece', factor: '1', barcode: '6 281000 044021' },
+              { code: 'BOX', name: 'Box', factor: '12', barcode: '6 281000 044038' },
+              { code: 'PLT', name: 'Pallet', factor: '600', barcode: '6 281000 044045' },
+            ].map((u, i, a) => (
+              <div key={u.code} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 70px 1fr', gap: 12, padding: '12px 0', alignItems: 'center', borderBottom: i < a.length - 1 ? '1px solid var(--gl-border)' : 'none', fontSize: 13 }}>
+                <span style={{ fontFamily: 'var(--gl-font-mono)', fontWeight: 700, color: '#4A7CFF' }}>{u.code}</span>
+                <span style={{ color: 'var(--gl-fg-1)' }}>{u.name}</span>
+                <span style={{ fontFamily: 'var(--gl-font-mono)', textAlign: 'right', color: 'var(--gl-fg-2)' }}>{u.factor}</span>
+                <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, textAlign: 'right', color: 'var(--gl-fg-3)' }}>{u.barcode}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Movement trend */}
+      <Card>
+        <SectionHeader title="6-Month Movement" subtitle="Units received vs issued · valuation: Weighted Average" marker="orange"
+          right={<div style={{ display: 'flex', gap: 16, fontSize: 11 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--gl-fg-3)' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#1DB88A' }} />Received</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--gl-fg-3)' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#EF4444' }} />Issued</span>
+          </div>} />
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, height: 150, padding: '0 4px' }}>
+          {[
+            { m: 'Jul', rec: 60, iss: 42 }, { m: 'Aug', rec: 48, iss: 55 }, { m: 'Sep', rec: 72, iss: 50 },
+            { m: 'Oct', rec: 40, iss: 38 }, { m: 'Nov', rec: 88, iss: 64 }, { m: 'Dec', rec: 32, iss: 28 },
+          ].map((d) => (
+            <div key={d.m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 110 }}>
+                <div style={{ width: 12, height: `${d.rec}%`, background: '#1DB88A', borderRadius: '3px 3px 0 0' }} title={`Received ${d.rec}`} />
+                <div style={{ width: 12, height: `${d.iss}%`, background: '#EF4444', borderRadius: '3px 3px 0 0' }} title={`Issued ${d.iss}`} />
+              </div>
+              <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>{d.m}</span>
+            </div>
+          ))}
         </div>
       </Card>
 
@@ -256,3 +601,13 @@ function PTile({ label, value, sub, highlight }) {
 window.ProductsList = ProductsList;
 window.CreateProduct = CreateProduct;
 window.ProductDetails = ProductDetails;
+
+function MarginTile({ label, value, sub, color }) {
+  return (
+    <div style={{ padding: 14, background: `${color}10`, border: `1px solid ${color}40`, borderRadius: 6 }}>
+      <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gl-fg-3)' }}>{label}</div>
+      <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 22, fontWeight: 700, color, marginTop: 6, lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)', marginTop: 4 }}>{sub}</div>
+    </div>
+  );
+}

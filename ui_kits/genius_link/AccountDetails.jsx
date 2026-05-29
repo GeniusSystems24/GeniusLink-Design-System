@@ -44,7 +44,7 @@ function AccountDetails({ onBack, onEdit, onDelete }) {
       {/* Identity */}
       <Card>
         <SectionHeader title="Account Information" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="Code" value="1001" mono />
           <LockedField label="Type" value="Asset · Cash Equivalents" />
           <LockedField label="Name English" value="Cash Box" />
@@ -99,7 +99,7 @@ function AccountDetails({ onBack, onEdit, onDelete }) {
       {/* Audit */}
       <Card>
         <SectionHeader title="Audit Information" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 16 }}>
           {[
             ['Created By', 'Admin User (ID: 5)'],
             ['Created At', 'Apr 12, 2024 09:21 AM'],

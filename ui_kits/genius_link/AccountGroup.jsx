@@ -75,7 +75,7 @@ function AccountGroupDetails({ onBack, onEdit, onDelete }) {
       }>
       <Card>
         <SectionHeader title="Group Information" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="ID" value="1042" mono />
           <div>
             <div style={{
@@ -107,7 +107,7 @@ function AccountGroupDetails({ onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Audit Information" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 16 }}>
           {[
             ['Created By', 'Admin User (ID: 5)'],
             ['Created At', 'Dec 04, 2025 11:58 PM'],

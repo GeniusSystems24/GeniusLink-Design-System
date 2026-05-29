@@ -77,7 +77,7 @@ function JournalEntryDetails({ onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Audit Information" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 16 }}>
           {[
             ['Created By', 'Layla A. (ID: 12)'],
             ['Posted At', 'Dec 19, 2025 10:14 AM'],

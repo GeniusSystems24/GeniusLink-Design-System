@@ -321,75 +321,89 @@ Login · Dashboard · Accounts (+ detail) · Create Account · Create Account Gr
 
 ---
 
-## V3 — Stage A · Banking & Transfers Mobile (البنوك والتحويلات) — كلها ناقصة
+## V3 — Stage A · Banking & Transfers Mobile (البنوك والتحويلات) — ✅ مكتملة
 
-- [ ] `Create-Deposit---Mobile`
-- [ ] `Deposit-Details---Mobile`
-- [ ] `Create-Withdrawal---Mobile`
-- [ ] `Withdrawal-Details---Mobile`
-- [ ] `Create-Local-Transfer---Mobile`
-- [ ] `Local-Transfer-Details---Mobile`
-- [ ] `Create-External-Transfer---Mobile`
-- [ ] `External-Transfer-Details---Mobile`
+> بُنيت وفق نظام التصميم (لا يوجد تصميم موبايل لها في Figma — `Create-Deposit` مجرد عنوان نصّي). تطابق نموذج بيانات الديسكتوب (`CashMovement.jsx` + `Transfers.jsx`). الملف: `MobileBanking.jsx`، والوصول عبر **More → Banking · Cash / Banking · Transfers**.
 
-## V3 — Stage B · Products & Inventory Operations Mobile (المنتجات وعمليات المخزون)
+- [x] `Create-Deposit---Mobile`
+- [x] `Deposit-Details---Mobile`
+- [x] `Create-Withdrawal---Mobile`
+- [x] `Withdrawal-Details---Mobile`
+- [x] `Create-Local-Transfer---Mobile`
+- [x] `Local-Transfer-Details---Mobile`
+- [x] `Create-External-Transfer---Mobile`
+- [x] `External-Transfer-Details---Mobile`
 
-- [ ] `Create-Product---Mobile`
-- [ ] `Product-Details---Mobile`
-- [ ] `Products-List---Mobile`
-- [ ] `Issue-Inventory---Details---Mobile`
-- [ ] `Receive-Inventory---Create---Mobile`
-- [ ] `Receive-Inventory---Details---Mobile`
-- [ ] `Transfer-Inventory---Create---Mobile`
-- [ ] `Transfer-Inventory---Details---Mobile`
-- [ ] `Inventory-Adjustment---Mobile`
+## V3 — Stage B · Products & Inventory Operations Mobile (المنتجات وعمليات المخزون) — ✅ مكتملة
 
-## V3 — Stage C · Ledger & Journal Mobile (الدفاتر والقيود)
+> نمط المخزون (أقسام قابلة للطي + ماسح باركود + صفوف منتجات بعدّاد كمية) مأخوذ حرفياً من تصميم Figma `Transfer-Inventory---Create-Mobile`، وأُعيد استخدامه لباقي الشاشات. الملف: `MobileInventory.jsx` (+ بريميتيفز مشتركة `window._minv`). الوصول: **More → Products / Inventory**.
 
-- [ ] `Create-Journal-Entry---Mobile`
-- [ ] `Journal-Entry-Details---Mobile`
-- [ ] `Journal-List---Mobile`
+- [x] `Create-Product---Mobile`
+- [x] `Product-Details---Mobile`
+- [x] `Products-List---Mobile`
+- [x] `Issue-Inventory---Details---Mobile`
+- [x] `Receive-Inventory---Create---Mobile`
+- [x] `Receive-Inventory---Details---Mobile`
+- [x] `Transfer-Inventory---Create---Mobile` — مطابق لتصميم Figma
+- [x] `Transfer-Inventory---Details---Mobile`
+- [x] `Inventory-Adjustment---Mobile`
 
-## V3 — Stage D · Currencies & Configuration Mobile (العملات والإعدادات) — كلها ناقصة
+## V3 — Stage C · Ledger & Journal Mobile (الدفاتر والقيود) — ✅ مكتملة
 
-- [ ] `Create-Currency---Mobile`
-- [ ] `Currency-Details---Mobile`
-- [ ] `Currencies-List---Mobile`
-- [ ] `Exchange-Rate-Setup---Mobile`
-- [ ] `Fiscal-Year-Setup---Mobile`
+> الملف: `MobileJournal.jsx`. الوصول: **More → Ledger**.
 
-## V3 — Stage E · Users & Authentication Mobile (المستخدمون والمصادقة)
+- [x] `Create-Journal-Entry---Mobile`
+- [x] `Journal-Entry-Details---Mobile`
+- [x] `Journal-List---Mobile`
 
-- [ ] `Sign-Up---Mobile`
-- [ ] `Forgot-Password---Mobile`
-- [ ] `Users-List---Mobile`
-- [ ] `User-Details---Mobile`
-- [ ] `Create-User---Mobile`
-- [ ] `Permissions / Roles---Mobile`
+## V3 — Stage D · Currencies & Configuration Mobile (العملات والإعدادات) — ✅ مكتملة
 
-## V3 — Stage F · Reports & Dashboards Mobile (التقارير) — كلها ناقصة
+> بُنيت وفق نظام التصميم. الملف: `MobileCurrencies.jsx`. الوصول: **More → Configuration**.
 
-> ⚠️ التقارير على الموبايل: عرض مبسّط (KPI cards + جداول مكدّسة + فلاتر فترة) — لا تمرير أفقي.
+- [x] `Create-Currency---Mobile`
+- [x] `Currency-Details---Mobile`
+- [x] `Currencies-List---Mobile`
+- [x] `Exchange-Rate-Setup---Mobile`
+- [x] `Fiscal-Year-Setup---Mobile`
 
-- [ ] `Trial-Balance-Report---Mobile`
-- [ ] `Income-Statement---Mobile`
-- [ ] `Balance-Sheet---Mobile`
-- [ ] `Inventory-Valuation-Report---Mobile`
-- [ ] `Audit-Log---Mobile`
+## V3 — Stage E · Users & Authentication Mobile (المستخدمون والمصادقة) — ✅ مكتملة
 
-## V3 — Stage G · Customers & Suppliers Mobile (العملاء والموردون) — كلها ناقصة
+> بُنيت وفق نظام التصميم — **تفاعلية حقيقية**: تدفّق تسجيل اشتراك/نسيان كلمة المرور قبل الدخول (مع حالة نجاح)، بحث فوري + فلتر أدوار للمستخدمين، ومصفوفة صلاحيات تتبدّل بالنقر. الملف: `MobileUsers.jsx` (+ بريميتيفز تفاعلية `window._mui`). الوصول: **شاشة الدخول + More → Administration**.
 
-- [ ] `Create-Customer---Mobile`
-- [ ] `Customer-Details---Mobile`
-- [ ] `Customers-List---Mobile`
-- [ ] `Create-Supplier---Mobile`
-- [ ] `Supplier-Details---Mobile`
-- [ ] `Suppliers-List---Mobile`
+- [x] `Sign-Up---Mobile`
+- [x] `Forgot-Password---Mobile`
+- [x] `Users-List---Mobile`
+- [x] `User-Details---Mobile`
+- [x] `Create-User---Mobile`
+- [x] `Permissions / Roles---Mobile`
 
-## V3 — Stage H · Accounts Parity Mobile (إكمال شاشات الحسابات)
+## V3 — Stage F · Reports & Dashboards Mobile (التقارير) — ✅ مكتملة
 
-- [ ] `Account-Details---Mobile` — رفع التكافؤ مع نسخة الديسكتوب الكاملة (حالياً يوجد عرض «Cash Box» مبسّط فقط)
-- [ ] `Account-Tree / Hierarchy---Mobile`
+> ⚠️ التقارير على الموبايل: عرض مبسّط (KPI cards + جداول مكدّسة + فلاتر فترة) — لا تمرير أفقي. **تفاعلية حقيقية**: محدّد فترة، فلتر متجر حي (تقييم المخزون)، فلتر إجراء + بحث حي (سجل التدقيق)، أقسام قابلة للطي. الملف: `MobileReports.jsx`. الوصول: **More → Reports**.
+
+- [x] `Trial-Balance-Report---Mobile`
+- [x] `Income-Statement---Mobile`
+- [x] `Balance-Sheet---Mobile`
+- [x] `Inventory-Valuation-Report---Mobile`
+- [x] `Audit-Log---Mobile`
+
+## V3 — Stage G · Customers & Suppliers Mobile (العملاء والموردون) — ✅ مكتملة
+
+> كيان مشترك (customer | supplier). **تفاعلية حقيقية**: بحث + فلتر حالة حي، حقول إدخال حقيقية. الملف: `MobileContacts.jsx`. الوصول: **More → Sales / Procurement**.
+
+- [x] `Create-Customer---Mobile`
+- [x] `Customer-Details---Mobile`
+- [x] `Customers-List---Mobile`
+- [x] `Create-Supplier---Mobile`
+- [x] `Supplier-Details---Mobile`
+- [x] `Suppliers-List---Mobile`
+
+## V3 — Stage H · Accounts Parity Mobile (إكمال شاشات الحسابات) — ✅ مكتملة
+
+> الملف: `MobileAccountsExtra.jsx`. الوصول: **More → Accounts → Account Tree** (وتفاصيل الحساب عبر تبويب Accounts).
+
+- [x] `Account-Details---Mobile` — ✅ رُفع التكافؤ الكامل (أرصدة Debit/Credit، 8 حقول معلومات، حركات برصيد جارٍ، تدقيق) — يستبدل العرض المبسّط السابق
+- [x] `Account-Tree / Hierarchy---Mobile` — شجرة تفاعلية (طي/فتح عودي)
 
 ---
 
@@ -403,3 +417,49 @@ Login · Dashboard · Accounts (+ detail) · Create Account · Create Account Gr
 4. ننفّذ مرحلة-مرحلة (المقترح أن نبدأ بـ **Stage A — Banking & Transfers** لأنها كاملة الغياب، ثم **Stage G — Customers & Suppliers**).
 
 > أخبرني بأي مرحلة V3 نبدأ، أو أعد إرفاق ملف Figma لاعتماد تصاميم الموبايل الأصلية قبل البناء.
+
+---
+---
+
+# 🟦 Version 4 — Settings & Tenant (الإعدادات والمستأجرين) — دسكتوب + موبايل
+
+> شاشات الإعدادات وإدارة المستأجرين لكلٍّ من الدسكتوب والموبايل، مدمجة في الكِت القائم:
+> - **دسكتوب:** قسم «Settings» جديد في الشريط الجانبي + غلاف ثنائي اللوح (left settings-nav + content). الملف: `Settings.jsx`.
+> - **موبايل:** عنصر «Settings» في قائمة More يفتح Hub بقائمة فئات → تتفرّع للشاشات. الملف: `MobileSettings.jsx`.
+> - تفاعلية حقيقية (حقول، مفاتيح، تبويبات، فلاتر، مصفوفة صلاحيات، مؤقّت إعادة مصادقة).
+
+## V4 — Stage 1 · Settings Foundation (الأساس) — ✅ مكتملة
+
+> Hub + غلاف ثنائي اللوح (دسكتوب) / Hub قابل للتفرّع (موبايل).
+
+- [x] `SettingsHubScreen` — landing (cards على الدسكتوب · قائمة فئات على الموبايل)
+- [x] `CompanyProfileSettingsScreen` — الاسم، الشعار، العنوان، الأرقام الضريبية
+- [x] `FinancialSettingsScreen` — العملة الأساسية، بداية السنة المالية، أساس المحاسبة، حسابات افتراضية
+- [x] `TaxesSettingsScreen` — قواعد VAT/GST (قائمة قابلة للتحرير + مفاتيح تفعيل)
+- [x] `CurrenciesSettingsScreen` — أسعار الصرف (Auto/Manual)
+- [x] `NumberingSequencesScreen` — بادئات المستندات + معاينة حيّة
+- [x] `BranchesStoresScreen` — الفروع والمتاجر والمستودعات
+
+## V4 — Stage 2 · Team & Security (الفريق والأمان) — ✅ مكتملة
+
+> دسكتوب: `SettingsTeam.jsx` · موبايل: `MobileSettingsTeam.jsx`. الوصول: **Settings → Team & Security / Workspace**. تبديل المستأجر عبر شريحة مساحة العمل في الشريط الجانبي (دسكتوب) وضمن Workspaces.
+
+- [x] `UserDetailsScreen` — تحرير الملف، الدور، حالة 2FA (مفتاح)، الجلسات النشطة (مع إلغاء)
+- [x] `RolesListScreen` — بطاقات أدوار + معاينة صلاحيات (3 أعمدة دسكتوب · مكدّسة موبايل)
+- [x] `RoleEditorScreen` — مصفوفة صلاحيات كاملة (View/Edit/Delete لكل وحدة · تفاعلية)
+- [x] `AuditLogScreen` — سجل غير قابل للتعديل + فلتر تاريخ (Today/7/30/All) + شارات + بحث
+- [x] Session-expiry banner / re-auth — توست بعدّاد تنازلي + نافذة/لوحة إعادة مصادقة في UsersList
+- [x] Tenant switcher — تبديل سريع (overlay دسكتوب · إدارة موبايل) + شاشة إدارة كاملة `TenantManagement`
+
+## V4 — Stage 3 · Platform (المنصّة) — ✅ مكتملة
+
+> دسكتوب: `SettingsPlatform.jsx` · موبايل: `MobileSettingsPlatform.jsx`. الوصول: **Settings → Platform**. تفاعلية حقيقية (Connect، مفاتيح Webhooks، إظهار/إخفاء وإلغاء مفاتيح API، مصفوفة قنوات الإشعارات، مقاييس الاستخدام، اختيار نطاق التصدير).
+
+- [x] `IntegrationsScreen` — البنوك والمدفوعات / التجارة الإلكترونية / البريد (Connect/Disconnect)
+- [x] `WebhooksScreen` — نقاط نهاية + أحداث مشتركة + تفعيل/إيقاف + حالة آخر تسليم
+- [x] `APIKeysScreen` — مفاتيح مع إظهار/إخفاء، نطاقات، إلغاء، تنبيه «يُعرض مرة واحدة»
+- [x] `NotificationPreferencesScreen` — مصفوفة فئات × قنوات (Email/In-app/SMS) تفاعلية
+- [x] `BillingPlanScreen` — الخطة الحالية + مقاييس استخدام + مقارنة خطط + فواتير
+- [x] `BackupExportScreen` — نسخ تلقائي + تصدير يدوي (نطاق/صيغة) + سجلّ + منطقة خطر
+
+> ✅ **Version 4 مكتملة بالكامل** (3 مراحل) — دسكتوب + موبايل.

@@ -1,25 +1,46 @@
-/* global React, Page, Card, SectionHeader, Field, Textarea, Button, IconBtn, Icon */
+/* global React, Page, Card, SectionHeader, Field, Textarea, Button, IconBtn, Icon, EditableTable */
 // Screen: Transfer Inventory — move stock between stores
 
+const TRANSFER_ITEM_COLS = [
+  { key: 'product', label: 'Product',    w: 240, type: 'text', required: true },
+  { key: 'unit',    label: 'Unit',       w: 90,  type: 'enum', opts: ['PCS','BAG','TON','SHT','L','M','KG'] },
+  { key: 'qty',     label: 'Qty',        w: 110, type: 'num',  align: 'right', mono: true, required: true },
+  { key: 'price',   label: 'Unit Cost',  w: 130, type: 'num',  align: 'right', mono: true },
+  { key: 'lineVal', label: 'Line Value', w: 140, type: 'num',  align: 'right', mono: true },
+];
+
 function TransferInventory({ onCancel, onCreate }) {
-  const { Static, SelectField, ItemsTable, UploadDropzone } = window._invShared;
-  const [items, setItems] = React.useState([
-    { product: 'Coarse Aggregate 20mm',    unit: 'TON', qty: 18, price: 125.00, freeQty: 0, expDate: '' },
-    { product: 'Reinforcement Bar #6',     unit: 'PCS', qty: 240, price: 78.00, freeQty: 0, expDate: '' },
+  const { Static, SelectField, UploadDropzone, WorkflowStrip } = window._invShared;
+  const [rawItems, setRawItems] = React.useState([
+    { product: 'Coarse Aggregate 20mm', unit: 'TON', qty: '18',  price: '125.00' },
+    { product: 'Reinforcement Bar #6',  unit: 'PCS', qty: '240', price: '78.00' },
   ]);
+  const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // computed view: add lineVal
+  const items = rawItems.map(it => {
+    const q = parseFloat(it.qty) || 0;
+    const p = parseFloat(it.price) || 0;
+    return { ...it, lineVal: q && p ? fmt(q * p) : '' };
+  });
+  const setItems = (next) => {
+    // strip lineVal back out when storing
+    setRawItems(next.map(({ lineVal, ...rest }) => rest));
+  };
   const [note, setNote] = React.useState('');
 
-  const subtotal = items.reduce((s, it) => s + (it.qty * it.price), 0);
-  const totalQty = items.reduce((s, it) => s + Number(it.qty || 0), 0);
+  const subtotal = rawItems.reduce((s, it) => s + ((parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0)), 0);
+  const totalQty = rawItems.reduce((s, it) => s + (parseFloat(it.qty) || 0), 0);
 
   return (
     <Page
       breadcrumb={['Commercial', 'Inventory', 'Transfer']}
       title="Transfer Inventory">
 
+      <WorkflowStrip steps={['Draft', 'Dispatched', 'In Transit', 'Received']} current={1} accent="#4A7CFF" />
+
       {/* Header row */}
       <Card padding={20}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Static label="Serial No" value="INV-TRF-2024-0117" mono locked />
           <SelectField label="Currency" value="SAR — Saudi Riyal"
                        options={['SAR — Saudi Riyal', 'USD — US Dollar']} />
@@ -75,27 +96,20 @@ function TransferInventory({ onCancel, onCreate }) {
           title="Inventory Items"
           subtitle={`${items.length} line${items.length === 1 ? '' : 's'} · ${totalQty.toLocaleString()} units in transit`}
           marker="green" />
-        <ItemsTable items={items} onChange={setItems} variant="receive" />
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          paddingTop: 8,
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--gl-fg-3)', fontStyle: 'italic' }}>
-            To add a new row, simply start entering data in the last empty row.
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{
-              fontWeight: 700, fontSize: 10, letterSpacing: '0.08em',
-              textTransform: 'uppercase', color: 'var(--gl-fg-3)',
-            }}>Total Value in Transit</div>
-            <div style={{
-              fontFamily: 'var(--gl-font-mono)', fontSize: 22, fontWeight: 600,
-              color: 'var(--gl-fg-1)', marginTop: 4,
-            }}>{subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              <span style={{ fontSize: 12, color: 'var(--gl-fg-3)', fontWeight: 400, marginLeft: 8 }}>SAR</span>
+        <EditableTable
+          columns={TRANSFER_ITEM_COLS}
+          rows={items}
+          onChange={setItems}
+          addRowLabel="Add Item"
+          emptyRow={() => ({ product: '', unit: 'PCS', qty: '', price: '' })}
+          footer={
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gl-fg-3)' }}>Total Value in Transit</div>
+              <div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 22, fontWeight: 600, color: 'var(--gl-fg-1)', marginTop: 4 }}>{fmt(subtotal)}
+                <span style={{ fontSize: 12, color: 'var(--gl-fg-3)', fontWeight: 400, marginLeft: 8 }}>SAR</span>
+              </div>
             </div>
-          </div>
-        </div>
+          } />
       </Card>
 
       {/* Logistics */}
@@ -111,7 +125,7 @@ function TransferInventory({ onCancel, onCreate }) {
       {/* Notes & docs */}
       <Card>
         <SectionHeader title="Documentation &amp; Compliance" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Textarea label="Transfer Notes"
                     placeholder="Reason for transfer, special handling, or destination instructions…"
                     value={note} onChange={setNote} rows={5} />

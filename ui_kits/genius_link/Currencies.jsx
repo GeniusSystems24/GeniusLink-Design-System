@@ -72,7 +72,7 @@ function CreateCurrency({ onCancel, onCreate }) {
     <Page breadcrumb={['Configuration', 'Currencies', 'New']} title="Add Currency">
       <Card>
         <SectionHeader title="Currency Definition" subtitle="ISO code, display names and symbol" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Field label="ISO Code" required placeholder="e.g. USD" mono />
           <Field label="Symbol" required placeholder="e.g. $" />
           <Field label="Name English" required placeholder="e.g. US Dollar"
@@ -84,7 +84,7 @@ function CreateCurrency({ onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Precision &amp; Rate" subtitle="Decimal places and exchange rate against base" marker="green" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <CurSelect label="Decimal Places" value="2" options={['0', '2', '3']} />
           <Field label="Exchange Rate (per 1 SAR)" placeholder="e.g. 3.750200" mono />
         </div>
@@ -126,7 +126,7 @@ function CurrencyDetails({ onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Definition" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="ISO Code" value="USD" mono />
           <LockedField label="Symbol" value="$" />
           <LockedField label="Name English" value="US Dollar" />

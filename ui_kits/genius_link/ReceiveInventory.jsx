@@ -1,19 +1,45 @@
-/* global React, Page, Card, SectionHeader, Field, Textarea, Button, IconBtn, Icon, TotalsStrip */
+/* global React, Page, Card, SectionHeader, Field, Textarea, Button, IconBtn, Icon, TotalsStrip, EditableTable */
 // Screen: Receive Inventory — incoming stock from a supplier
+
+const RECEIVE_ITEM_COLS = [
+  { key: 'product', label: 'Product', w: 240, type: 'text', required: true },
+  { key: 'unit',    label: 'Unit',    w: 90,  type: 'enum', opts: ['PCS','BAG','TON','SHT','L','M','KG'] },
+  { key: 'qty',     label: 'Qty',     w: 100, type: 'num',  align: 'right', mono: true, required: true },
+  { key: 'price',   label: 'Price',   w: 120, type: 'num',  align: 'right', mono: true, required: true },
+  { key: 'freeQty', label: 'Free Qty',w: 100, type: 'num',  align: 'right', mono: true },
+  { key: 'expDate', label: 'Exp Date',w: 130, type: 'text', mono: true, placeholder: 'mm/dd/yyyy' },
+];
+const RECEIVE_DIST_COLS = [
+  { key: 'account',  label: 'Account',     w: 240, type: 'text', required: true },
+  { key: 'currency', label: 'Currency',    w: 110, type: 'enum', opts: ['SAR','USD','EUR'] },
+  { key: 'debit',    label: 'Debit',       w: 130, type: 'num',  align: 'right', mono: true },
+  { key: 'credit',   label: 'Credit',      w: 130, type: 'num',  align: 'right', mono: true },
+  { key: 'desc',     label: 'Description', w: 240, type: 'text' },
+];
 
 function ReceiveInventory({ onCancel, onCreate }) {
   const [items, setItems] = React.useState([
-    { product: 'Portland Cement Type I', unit: 'BAG', qty: 400, price: 24.50, freeQty: 20, expDate: '06/30/2026' },
-    { product: 'Structural Steel I-Beam', unit: 'PCS', qty: 32,  price: 450.00, freeQty: 0,  expDate: '' },
+    { product: 'Portland Cement Type I',  unit: 'BAG', qty: '400', price: '24.50',  freeQty: '20', expDate: '06/30/2026' },
+    { product: 'Structural Steel I-Beam', unit: 'PCS', qty: '32',  price: '450.00', freeQty: '0',  expDate: '' },
   ]);
   const [note, setNote] = React.useState('');
 
-  const subtotal = items.reduce((s, it) => s + (it.qty * it.price), 0);
+  const subtotal = items.reduce((s, it) => s + ((parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0)), 0);
+  const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [dist, setDist] = React.useState([
+    { account: '1200 — Inventory (WIP)',  currency: 'SAR', debit: fmt(subtotal), credit: '',           desc: 'Stock received' },
+    { account: '2001 — Accounts Payable', currency: 'SAR', debit: '',           credit: fmt(subtotal),desc: 'Owed to supplier' },
+  ]);
+  React.useEffect(() => {
+    setDist((prev) => prev.map((r, i) => i === 0 ? { ...r, debit: fmt(subtotal) } : (i === 1 ? { ...r, credit: fmt(subtotal) } : r)));
+  }, [subtotal]);
 
   return (
     <Page
       breadcrumb={['Commercial', 'Inventory', 'Receive']}
       title="Receive Inventory">
+
+      <WorkflowStrip steps={['Draft', 'Quality Check', 'Posted', 'Stock Updated']} current={0} accent="#1DB88A" />
 
       <Card padding={20}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24 }}>
@@ -22,6 +48,14 @@ function ReceiveInventory({ onCancel, onCreate }) {
                        options={['SAR — Saudi Riyal', 'USD — US Dollar', 'EUR — Euro']} />
           <Field label="Receiving Store" placeholder="Search store…" required />
           <Field label="Supplier Account" placeholder="e.g. ABC Trading Co." required />
+        </div>
+        <div style={{ borderTop: '1px solid var(--gl-border)', paddingTop: 16 }}>
+          <DocMeta items={[
+            { label: 'PO Ref', value: 'PO-2024-0418', icon: 'paperclip', mono: true },
+            { label: 'Delivery Note', value: 'DN-99213', icon: 'doc', mono: true },
+            { label: 'Received', value: 'Dec 18, 2025', icon: 'clock' },
+            { label: 'GRN', value: 'Auto on post', icon: 'check' },
+          ]} />
         </div>
       </Card>
 
@@ -44,25 +78,38 @@ function ReceiveInventory({ onCancel, onCreate }) {
               <Icon name="scanner" size={13} /> Scan to Add
             </div>
           } />
-        <ItemsTable items={items} onChange={setItems} variant="receive" />
-        <div style={{
-          fontSize: 12, color: 'var(--gl-fg-3)', fontStyle: 'italic', paddingTop: 4,
-        }}>To add a new row, simply start entering data in the last empty row.</div>
+        <EditableTable
+          columns={RECEIVE_ITEM_COLS}
+          rows={items}
+          onChange={setItems}
+          addRowLabel="Add Item"
+          emptyRow={() => ({ product: '', unit: 'PCS', qty: '', price: '', freeQty: '', expDate: '' })}
+          footer={
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontWeight: 700, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gl-fg-3)', marginRight: 12 }}>Subtotal</span>
+              <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 16, fontWeight: 600, color: 'var(--gl-fg-1)' }}>{fmt(subtotal)} <span style={{ fontSize: 11, color: 'var(--gl-fg-3)', fontWeight: 400 }}>SAR</span></span>
+            </div>
+          } />
       </Card>
 
       {/* Accounting */}
       <Card>
         <SectionHeader title="Accounting Distribution" marker="green" />
-        <DistributionTable amount={subtotal} type="receive" />
+        <EditableTable
+          columns={RECEIVE_DIST_COLS}
+          rows={dist}
+          onChange={setDist}
+          addRowLabel="Add Line"
+          emptyRow={() => ({ account: '', currency: 'SAR', debit: '', credit: '', desc: '' })} />
         <TotalsStrip
-          debits={subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          credits={subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          debits={fmt(subtotal)}
+          credits={fmt(subtotal)}
           difference="0.00" />
       </Card>
 
       <Card>
         <SectionHeader title="Documentation & Compliance" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Textarea label="Receipt Notes"
                     placeholder="Reference PO number, delivery note number, or inspection results…"
                     value={note} onChange={setNote} rows={5} />
@@ -284,4 +331,59 @@ function UploadDropzone({ label }) {
 
 window.ReceiveInventory = ReceiveInventory;
 // expose shared helpers for Transfer / Adjustment
-window._invShared = { Static, SelectField, ItemsTable, CellInput, UploadDropzone };
+window._invShared = { Static, SelectField, ItemsTable, CellInput, UploadDropzone, WorkflowStrip, DocMeta };
+
+/* Document status stepper used across all inventory transaction screens. */
+function WorkflowStrip({ steps, current, accent = '#4A7CFF' }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap',
+      background: 'var(--gl-surface)', border: '1px solid var(--gl-border)', borderRadius: 8,
+      boxShadow: 'var(--gl-shadow)', padding: '16px 20px',
+    }}>
+      {steps.map((s, i) => {
+        const done = i < current;
+        const active = i === current;
+        const color = done ? '#1DB88A' : (active ? accent : 'var(--gl-fg-4)');
+        return (
+          <React.Fragment key={s}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                width: 26, height: 26, borderRadius: 999, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: done ? 'rgba(29,184,138,0.15)' : (active ? `${accent}1F` : 'var(--gl-input-bg)'),
+                border: `1.5px solid ${color}`, color,
+                fontFamily: 'var(--gl-font-mono)', fontSize: 12, fontWeight: 700,
+              }}>{done ? <Icon name="check" size={13} stroke={2.5} /> : i + 1}</span>
+              <span style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                color: active ? 'var(--gl-fg-1)' : (done ? 'var(--gl-fg-2)' : 'var(--gl-fg-3)'),
+              }}>{s}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <span style={{ flex: '1 1 24px', minWidth: 16, height: 2, margin: '0 14px', borderRadius: 999, background: i < current ? '#1DB88A' : 'var(--gl-border)' }} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Small inline meta chips (PO ref, supplier, date…) shown under a header. */
+function DocMeta({ items }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      {items.map((it) => (
+        <span key={it.label} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px',
+          background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)', borderRadius: 999, fontSize: 12,
+        }}>
+          {it.icon && <span style={{ color: 'var(--gl-fg-3)', display: 'flex' }}><Icon name={it.icon} size={12} /></span>}
+          <span style={{ color: 'var(--gl-fg-3)', fontWeight: 700, fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{it.label}</span>
+          <span style={{ fontFamily: it.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', color: 'var(--gl-fg-1)', fontWeight: 600 }}>{it.value}</span>
+        </span>
+      ))}
+    </div>
+  );
+}

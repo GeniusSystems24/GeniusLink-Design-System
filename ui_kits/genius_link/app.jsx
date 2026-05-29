@@ -9,6 +9,7 @@ const SCREENS = [
   { id: 'forgot',        label: 'Forgot Password',         icon: 'lock',       comp: 'ForgotPassword',       section: 'Auth',     fullBleed: true },
   // Overview
   { id: 'dashboard',     label: 'Dashboard',               icon: 'briefcase',  comp: 'Dashboard',            section: 'Overview' },
+  { id: 'invDashboard',  label: 'Inventory Dashboard',     icon: 'scanner',    comp: 'InventoryDashboard',   section: 'Overview' },
   // Accounts
   { id: 'accounts',      label: 'Chart of Accounts',       icon: 'ledger',     comp: 'AccountsList',         section: 'Accounts' },
   { id: 'accountTree',   label: 'Account Tree',            icon: 'briefcase',  comp: 'AccountTree',          section: 'Accounts' },
@@ -17,16 +18,22 @@ const SCREENS = [
   { id: 'group',         label: 'Create Account Group',    icon: 'briefcase',  comp: 'CreateAccountGroup',   section: 'Accounts' },
   { id: 'groupDetail',   label: 'Account Group · View',    icon: 'doc',        comp: 'AccountGroupDetails',  section: 'Accounts' },
   // Stores
-  { id: 'stores',        label: 'Stores',                  icon: 'store',      comp: 'StoresList',           section: 'Stores' },
-  { id: 'storeDetail',   label: 'Store · View',            icon: 'doc',        comp: 'StoreDetails',         section: 'Stores' },
-  { id: 'createStore',   label: 'Create Store',            icon: 'plus',       comp: 'CreateStore',          section: 'Stores' },
+  { id: 'stores',        label: 'Warehouses',              icon: 'store',      comp: 'StoresList',           section: 'Stores' },
+  { id: 'storeDetail',   label: 'Warehouse · View',        icon: 'doc',        comp: 'StoreDetails',         section: 'Stores' },
+  { id: 'createStore',   label: 'Create Warehouse',        icon: 'plus',       comp: 'CreateStore',          section: 'Stores' },
   { id: 'products',      label: 'Products',                icon: 'scanner',    comp: 'ProductsList',         section: 'Stores' },
   { id: 'createProduct', label: 'Create Product',          icon: 'plus',       comp: 'CreateProduct',        section: 'Stores' },
   { id: 'productDetail', label: 'Product · View',          icon: 'doc',        comp: 'ProductDetails',       section: 'Stores' },
+  { id: 'categories',    label: 'Categories',              icon: 'briefcase',  comp: 'Categories',           section: 'Stores' },
+  { id: 'uom',           label: 'Units of Measure',        icon: 'compass',    comp: 'UnitsOfMeasure',       section: 'Stores' },
+  { id: 'priceLists',    label: 'Price Lists',             icon: 'ledger',     comp: 'PriceLists',           section: 'Stores' },
   { id: 'inventory',     label: 'Issue Inventory',         icon: 'scanner',    comp: 'IssueInventory',       section: 'Stores' },
   { id: 'receive',       label: 'Receive Inventory',       icon: 'download',   comp: 'ReceiveInventory',     section: 'Stores' },
-  { id: 'transfer',      label: 'Transfer Inventory',      icon: 'paperclip',  comp: 'TransferInventory',    section: 'Stores' },
-  { id: 'adjust',        label: 'Inventory Adjustment',    icon: 'tool',       comp: 'InventoryAdjustment',  section: 'Stores' },
+  { id: 'transferList',  label: 'Stock Transfers',         icon: 'paperclip',  comp: 'StockTransferList',    section: 'Stores' },
+  { id: 'transfer',      label: 'New Stock Transfer',      icon: 'paperclip',  comp: 'TransferInventory',    section: 'Stores' },
+  { id: 'adjust',        label: 'Stock Adjustment',        icon: 'settings',   comp: 'InventoryAdjustment',  section: 'Stores' },
+  { id: 'stockTake',     label: 'Stock Take',              icon: 'check',      comp: 'StockTake',            section: 'Stores' },
+  { id: 'barcodePrint',  label: 'Barcode Print',           icon: 'hash',       comp: 'BarcodePrint',         section: 'Stores' },
   // Ledger
   { id: 'journals',      label: 'Journal Entries',         icon: 'ledger',     comp: 'JournalList',          section: 'Ledger' },
   { id: 'createJournal', label: 'Create Journal Entry',    icon: 'plus',       comp: 'CreateJournalEntry',   section: 'Ledger' },
@@ -67,6 +74,45 @@ const SCREENS = [
   { id: 'suppliers',     label: 'Suppliers',               icon: 'briefcase',  comp: 'SuppliersList',        section: 'Procurement' },
   { id: 'createSupplier',label: 'Add Supplier',            icon: 'plus',       comp: 'CreateSupplier',       section: 'Procurement' },
   { id: 'supplierDetail',label: 'Supplier · View',         icon: 'doc',        comp: 'SupplierDetails',      section: 'Procurement' },
+  // Settings
+  { id: 'settingsHub',   label: 'Settings',                icon: 'settings',   comp: 'SettingsHub',          section: 'Settings' },
+  { id: 'setCompany',    label: 'Company Profile',         icon: 'building',   comp: 'CompanyProfileSettings', section: 'Settings', hideNav: true },
+  { id: 'setFinancial',  label: 'Financial',               icon: 'globe',      comp: 'FinancialSettings',    section: 'Settings', hideNav: true },
+  { id: 'setTaxes',      label: 'Taxes',                   icon: 'percent',    comp: 'TaxesSettings',        section: 'Settings', hideNav: true },
+  { id: 'setCurrencies', label: 'Currencies · Settings',   icon: 'compass',    comp: 'CurrenciesSettings',   section: 'Settings', hideNav: true },
+  { id: 'setNumbering',  label: 'Numbering',               icon: 'hash',       comp: 'NumberingSequences',   section: 'Settings', hideNav: true },
+  { id: 'setBranches',   label: 'Branches & Stores',       icon: 'store',      comp: 'BranchesStores',       section: 'Settings', hideNav: true },
+  { id: 'tenants',       label: 'Workspaces',              icon: 'switch2',    comp: 'TenantManagement',     section: 'Settings', hideNav: true },
+  { id: 'setRoles',      label: 'Roles · Cards',           icon: 'settings',   comp: 'RolesListScreen',      section: 'Settings', hideNav: true },
+  { id: 'roleEditor',    label: 'Role Editor',             icon: 'settings',   comp: 'RoleEditorScreen',     section: 'Settings', hideNav: true },
+  { id: 'setAudit',      label: 'Audit Log · Settings',    icon: 'lock',       comp: 'AuditLogScreen',       section: 'Settings', hideNav: true },
+  { id: 'setIntegrations', label: 'Integrations',          icon: 'plug',       comp: 'IntegrationsScreen',   section: 'Settings', hideNav: true },
+  { id: 'setWebhooks',   label: 'Webhooks',                icon: 'link',       comp: 'WebhooksScreen',       section: 'Settings', hideNav: true },
+  { id: 'setApiKeys',    label: 'API Keys',                icon: 'key',        comp: 'APIKeysScreen',        section: 'Settings', hideNav: true },
+  { id: 'setNotifications', label: 'Notifications',        icon: 'bell',       comp: 'NotificationPreferencesScreen', section: 'Settings', hideNav: true },
+  { id: 'setBilling',    label: 'Billing & Plan',          icon: 'card',       comp: 'BillingPlanScreen',    section: 'Settings', hideNav: true },
+  { id: 'setBackup',     label: 'Backup & Export',         icon: 'database',   comp: 'BackupExportScreen',   section: 'Settings', hideNav: true },
+
+  // ── Module landing hubs (the consolidated sidebar entries) ──
+  { id: 'accountsHub',    label: 'Accounts',            icon: 'ledger',    comp: 'AccountsHub',    section: 'Modules' },
+  { id: 'ledgerHub',      label: 'Ledger',              icon: 'ledger',    comp: 'LedgerHub',      section: 'Modules' },
+  { id: 'bankingHub',     label: 'Banking',             icon: 'switch2',   comp: 'BankingHub',     section: 'Modules' },
+  { id: 'reportsHub',     label: 'Reports',             icon: 'doc',       comp: 'ReportsHub',     section: 'Modules' },
+  { id: 'storesHub',      label: 'Inventory & Stores',  icon: 'store',     comp: 'StoresHub',      section: 'Modules' },
+  { id: 'salesHub',       label: 'Sales',               icon: 'user',      comp: 'SalesHub',       section: 'Modules' },
+  { id: 'procurementHub', label: 'Procurement',         icon: 'briefcase', comp: 'ProcurementHub', section: 'Modules' },
+  { id: 'configHub',      label: 'Configuration',       icon: 'compass',   comp: 'ConfigHub',      section: 'Modules' },
+  { id: 'adminHub',       label: 'Team & Access',       icon: 'user',      comp: 'AdminHub',       section: 'Modules' },
+];
+
+// Sidebar is driven by this explicit map — related screens collapse into one
+// module entry that opens a hub of cards (same pattern as Settings).
+const SIDEBAR_NAV = [
+  { group: 'Auth',           items: ['login', 'signup', 'forgot'] },
+  { group: 'Overview',       items: ['dashboard', 'invDashboard'] },
+  { group: 'Finance',        items: ['accountsHub', 'ledgerHub', 'bankingHub', 'reportsHub'] },
+  { group: 'Operations',     items: ['storesHub', 'salesHub', 'procurementHub'] },
+  { group: 'Administration', items: ['configHub', 'adminHub', 'settingsHub'] },
 ];
 
 // Controlled browser-style tab strip for the workspace view.
@@ -196,6 +242,7 @@ function App() {
         stores: 'createStore', products: 'createProduct',
         journals: 'createJournal', currencies: 'createCurrency',
         users: 'createUser', customers: 'createCustomer', suppliers: 'createSupplier',
+        transferList: 'transfer',
       };
       if (toCreate[current.id]) return setScreen(toCreate[current.id]);
       handleAction('Created successfully');
@@ -204,8 +251,8 @@ function App() {
     onEdit:        () => handleAction('Entering edit mode…'),
     onDelete:      () => handleAction('Delete confirmation required'),
     onBack:        () => {
-      const map = { Stores: 'stores', Accounts: 'accounts', Banking: 'localTransfer', Ledger: 'journals', Config: 'currencies', Admin: 'users', Sales: 'customers', Procurement: 'suppliers' };
-      setScreen(map[current.section] || 'accounts');
+      const map = { Stores: 'storesHub', Accounts: 'accountsHub', Banking: 'bankingHub', Ledger: 'ledgerHub', Config: 'configHub', Admin: 'adminHub', Sales: 'salesHub', Procurement: 'procurementHub' };
+      setScreen(map[current.section] || 'accountsHub');
     },
     onOpenEntry:   () => setScreen('journalDetail'),
     onSave:        () => handleAction('Saved'),
@@ -254,6 +301,7 @@ function App() {
             {openTabs.length === 0 ? <EmptyWorkspace /> : <Comp {...screenProps} />}
           </div>
         </div>
+        {screen === 'users' && window.SessionExpiryBanner && <window.SessionExpiryBanner />}
         {toast && <Toast>{toast}</Toast>}
       </div>
     </div>
@@ -286,13 +334,17 @@ function FloatingNav({ screen, setScreen, theme, setTheme }) {
   );
 }
 
+const TENANT_NAMES = { 9: 'Al-Rashid Trading Co.', 14: 'Najd Holdings', 22: 'Coastal Logistics' };
+
 function Sidebar({ screen, setScreen, theme, setTheme }) {
+  const [tenantOpen, setTenantOpen] = React.useState(false);
+  const [tenantId, setTenantId] = React.useState(9);
   return (
     <aside style={{
       background: 'var(--gl-surface)',
       borderRight: '1px solid var(--gl-border)',
       padding: '24px 16px',
-      display: 'flex', flexDirection: 'column', gap: 24,
+      display: 'flex', flexDirection: 'column', gap: 20,
       position: 'sticky', top: 0, height: '100vh',
       boxSizing: 'border-box',
     }}>
@@ -300,24 +352,40 @@ function Sidebar({ screen, setScreen, theme, setTheme }) {
         <Logo size={24} />
       </div>
 
+      {/* Workspace switcher chip */}
+      <button onClick={() => setTenantOpen((v) => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(74,124,255,0.18)', color: '#4A7CFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="building" size={15} /></span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--gl-fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{TENANT_NAMES[tenantId]}</span>
+          <span style={{ display: 'block', fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)' }}>Tenant {tenantId}</span>
+        </span>
+        <Icon name="switch2" size={14} color="var(--gl-fg-3)" />
+      </button>
+      {tenantOpen && window.TenantSwitcher && <window.TenantSwitcher onClose={() => setTenantOpen(false)} onNavigate={setScreen} currentId={tenantId} onSwitch={setTenantId} />}
+
       <div style={{ height: 1, background: 'var(--gl-border)' }} />
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, overflow: 'auto', flex: 1 }}>
-        {/* Group screens by section */}
-        {Array.from(new Set(SCREENS.map(s => s.section))).map((section) => (
-          <React.Fragment key={section}>
+        {/* Explicit grouped nav — modules collapse into hub entries */}
+        {SIDEBAR_NAV.map((grp) => (
+          <React.Fragment key={grp.group}>
             <div style={{
               fontWeight: 700, fontSize: 10, letterSpacing: '0.15em',
               textTransform: 'uppercase', color: 'var(--gl-fg-4)',
               padding: '12px 12px 6px',
-            }}>{section}</div>
-            {SCREENS.filter(s => s.section === section).map((s) => (
-              <NavItem key={s.id}
-                       active={screen === s.id}
-                       icon={s.icon}
-                       label={s.label}
-                       onClick={() => setScreen(s.id)} />
-            ))}
+            }}>{grp.group}</div>
+            {grp.items.map((id) => {
+              const s = SCREENS.find((x) => x.id === id);
+              if (!s) return null;
+              return (
+                <NavItem key={s.id}
+                         active={screen === s.id}
+                         icon={s.icon}
+                         label={s.label}
+                         onClick={() => setScreen(s.id)} />
+              );
+            })}
           </React.Fragment>
         ))}
       </nav>

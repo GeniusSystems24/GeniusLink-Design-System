@@ -196,7 +196,7 @@ function CashMovementForm({ kind, onCancel, onCreate }) {
                       value="1100 — Bank · NCB Main"
                       options={['1100 — Bank · NCB Main', '1001 — Cash Box', '1101 — Bank · Al Rajhi']} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <PaymentMethodPicker value={method} onChange={setMethod} />
           <Field label="Reference No" placeholder="e.g. CHQ-44821 / Wire Ref" mono />
         </div>
@@ -208,7 +208,7 @@ function CashMovementForm({ kind, onCancel, onCreate }) {
           title={isDeposit ? 'Source' : 'Beneficiary'}
           subtitle={isDeposit ? 'Who the funds came from' : 'Who the funds were paid to'}
           marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Field label={isDeposit ? 'Depositor Name' : 'Payee Name'}
                  placeholder={isDeposit ? 'e.g. Customer 102' : 'e.g. Riyadh Utilities Co.'} />
           <Field label="Linked Account" placeholder="Optional — select account" />
@@ -224,7 +224,7 @@ function CashMovementForm({ kind, onCancel, onCreate }) {
       {/* Docs */}
       <Card>
         <SectionHeader title="Documentation" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Textarea label="Notes" placeholder="Internal memo, approval reference, or context…"
                     value={note} onChange={setNote} rows={5} />
           <div>
@@ -296,7 +296,7 @@ function CashMovementDetails({ kind, onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Transaction Information" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="Serial No" value={serial} mono />
           <LockedField label="Method" value="Cash" />
           <LockedField label={isDeposit ? 'To Account' : 'From Account'} value="1100 — Bank · NCB Main" />
@@ -313,7 +313,7 @@ function CashMovementDetails({ kind, onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title="Audit Information" marker="orange" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 16 }}>
           {[
             ['Created By', 'Layla A. (ID: 12)'],
             ['Created At', 'Dec 18, 2025 09:42 AM'],

@@ -88,7 +88,7 @@ function CreateContact({ kind, onCancel, onCreate }) {
     <Page breadcrumb={[d.crumb, d.labelPl, 'New']} title={`Add ${d.label}`}>
       <Card>
         <SectionHeader title={`${d.label} Identity`} subtitle="Legal name and contact details" marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <Field label="Name English" required placeholder={`e.g. ${kind === 'customer' ? 'Riyadh Construction Co.' : 'Global Steel Imports LLC'}`} value={name.en} onChange={(v) => setName({ ...name, en: v })} />
           <Field label="الاسم بالعربية" placeholder="مثال: شركة الرياض للإنشاءات" dir="rtl" value={name.ar} onChange={(v) => setName({ ...name, ar: v })} />
           <Field label="Contact Person" placeholder="e.g. Ahmed K." />
@@ -100,7 +100,7 @@ function CreateContact({ kind, onCancel, onCreate }) {
 
       <Card>
         <SectionHeader title="Financial" subtitle="Linked control account and terms" marker="green" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
           <window._cfgShared.CurSelect label="Control Account" value={kind === 'customer' ? '1300 — Accounts Receivable' : '2001 — Accounts Payable'} options={kind === 'customer' ? ['1300 — Accounts Receivable'] : ['2001 — Accounts Payable']} />
           <window._cfgShared.CurSelect label="Payment Terms" value="Net 30" options={['Net 15', 'Net 30', 'Net 60', 'On Receipt']} />
           <Field label="Tax / VAT Number" placeholder="3XXXXXXXXXXXXX3" mono />
@@ -154,7 +154,7 @@ function ContactDetails({ kind, onBack, onEdit, onDelete }) {
 
       <Card>
         <SectionHeader title={`${d.label} Information`} marker="blue" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, rowGap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24, rowGap: 20 }}>
           <LockedField label="Code" value={c.code} mono />
           <LockedField label="City" value={c.city} />
           <LockedField label="Contact Person" value="Ahmed K." />

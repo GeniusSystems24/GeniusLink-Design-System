@@ -19,6 +19,22 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--gl-border-strong); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #4A7CFF; }
+
+  /* Form grid — cards lay fields out in up to 4 columns (xl).
+     Compact fields take 1 column; full-width blocks span every column. */
+  .gl-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+  }
+  .gl-col-full { grid-column: 1 / -1; }
+  @media (max-width: 1080px) {
+    .gl-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    .gl-form-grid { grid-template-columns: 1fr; }
+  }
 </style>
 
 <!-- Bundler thumbnail (used for standalone export) -->
@@ -43,6 +59,7 @@
 
 <!-- Shared components first -->
 <script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="EditableTable.jsx"></script>
 <!-- Screens -->
 <script type="text/babel" src="Login.jsx"></script>
 <script type="text/babel" src="Auth.jsx"></script>
@@ -58,6 +75,13 @@
 <script type="text/babel" src="ReceiveInventory.jsx"></script>
 <script type="text/babel" src="TransferInventory.jsx"></script>
 <script type="text/babel" src="InventoryAdjustment.jsx"></script>
+<script type="text/babel" src="InventoryDashboard.jsx"></script>
+<script type="text/babel" src="StockTake.jsx"></script>
+<script type="text/babel" src="StockTransferList.jsx"></script>
+<script type="text/babel" src="Categories.jsx"></script>
+<script type="text/babel" src="UnitsOfMeasure.jsx"></script>
+<script type="text/babel" src="PriceLists.jsx"></script>
+<script type="text/babel" src="BarcodePrint.jsx"></script>
 <script type="text/babel" src="JournalEntry.jsx"></script>
 <script type="text/babel" src="JournalList.jsx"></script>
 <script type="text/babel" src="CreateJournalEntry.jsx"></script>
@@ -70,6 +94,10 @@
 <script type="text/babel" src="Dashboard.jsx"></script>
 <script type="text/babel" src="Reports.jsx"></script>
 <script type="text/babel" src="Contacts.jsx"></script>
+<script type="text/babel" src="Settings.jsx"></script>
+<script type="text/babel" src="SettingsTeam.jsx"></script>
+<script type="text/babel" src="SettingsPlatform.jsx"></script>
+<script type="text/babel" src="Hubs.jsx"></script>
 <!-- App shell last -->
 <script type="text/babel" src="app.jsx"></script>
 
