@@ -32,41 +32,64 @@ function PeriodPill({ label, value }) {
 const money = (n) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /* ---------- Trial Balance ---------- */
-function TrialBalanceReport() {
+function TrialBalanceReport({ onOpenAccount }) {
   const rows = [
-    { code: '1001', name: 'Cash Box',            dr: 42500,  cr: 0 },
-    { code: '1100', name: 'Bank · NCB Main',     dr: 186420, cr: 0 },
-    { code: '1200', name: 'Inventory (WIP)',     dr: 54890,  cr: 0 },
-    { code: '2001', name: 'Accounts Payable',    dr: 0,      cr: 23140 },
-    { code: '3001', name: 'Owner Capital',       dr: 0,      cr: 260670 },
-    { code: '4001', name: 'Sales Revenue',       dr: 0,      cr: 89200 },
-    { code: '5001', name: 'Cost of Goods Sold',  dr: 34120,  cr: 0 },
-    { code: '5200', name: 'Operating Expense',   dr: 55080,  cr: 0 },
+    { code: '1001', name: 'Cash Box',            dr: 42500,  cr: 0,      move: 'Cash deposit',         ref: 'JV-2024-0226' },
+    { code: '1100', name: 'Bank · NCB Main',     dr: 186420, cr: 0,      move: 'Incoming transfer',    ref: 'DEP-2024-0182' },
+    { code: '1200', name: 'Inventory (WIP)',     dr: 54890,  cr: 0,      move: 'Stock received',       ref: 'INV-REC-0241' },
+    { code: '2001', name: 'Accounts Payable',    dr: 0,      cr: 23140,  move: 'Supplier invoice',     ref: 'EXT-2024-0311' },
+    { code: '3001', name: 'Owner Capital',       dr: 0,      cr: 260670, move: 'Capital injection',    ref: 'JV-2024-0001' },
+    { code: '4001', name: 'Sales Revenue',       dr: 0,      cr: 89200,  move: 'Sales invoice',        ref: 'SAL-2024-0420' },
+    { code: '5001', name: 'Cost of Goods Sold',  dr: 34120,  cr: 0,      move: 'Cost of sale',         ref: 'JV-2024-0210' },
+    { code: '5200', name: 'Operating Expense',   dr: 55080,  cr: 0,      move: 'Operating expense',    ref: 'JV-2024-0218' },
   ];
   const totDr = rows.reduce((s, r) => s + r.dr, 0);
   const totCr = rows.reduce((s, r) => s + r.cr, 0);
-  const grid = '90px 2fr 1.2fr 1.2fr';
+  const grid = '78px 1.5fr 1.7fr 1fr 1fr';
   return (
-    <Page breadcrumb={['Reports', 'Trial Balance']} title="Trial Balance">
+    <Page wide breadcrumb={['Reports', 'Trial Balance']} title="Trial Balance">
       <ReportHeader extra={<PeriodPill label="Status" value="Balanced" />} />
       <Card padding={0}>
         <div style={{ padding: '20px 24px 0' }}>
           <SectionHeader title="All Accounts" subtitle="Debit and credit balances as of period end" marker="green" />
         </div>
         <div style={{ padding: '16px 24px 24px' }}>
-          <ReportHead grid={grid} cols={['Code', 'Account', 'Debit', 'Credit']} rightFrom={2} />
+          <ReportHead grid={grid} cols={['Code', 'Account', 'Movement Statement · بيان الحركة', 'Debit', 'Credit']} rightFrom={3} />
           {rows.map((r, i) => (
             <div key={r.code} style={rowStyle(i, rows.length, grid)}>
               <span style={{ fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-3)' }}>{r.code}</span>
               <span style={{ fontWeight: 600 }}>{r.name}</span>
+              <MovementLink move={r.move} reference={r.ref} onClick={() => onOpenAccount && onOpenAccount(r)} />
               <span style={{ fontFamily: 'var(--gl-font-mono)', textAlign: 'right', color: r.dr ? '#1DB88A' : 'var(--gl-fg-4)' }}>{r.dr ? money(r.dr) : '—'}</span>
               <span style={{ fontFamily: 'var(--gl-font-mono)', textAlign: 'right', color: r.cr ? '#EF4444' : 'var(--gl-fg-4)' }}>{r.cr ? money(r.cr) : '—'}</span>
             </div>
           ))}
-          <TotalRow grid={grid} label="Totals" values={[money(totDr), money(totCr)]} balanced />
+          <TotalRow grid={grid} label="Totals" values={['', '', money(totDr), money(totCr)]} balanced />
         </div>
       </Card>
     </Page>
+  );
+}
+
+/* Hyperlinked financial-movement statement cell. */
+function MovementLink({ move, reference, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+      <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }}
+        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        style={{
+          color: '#4A7CFF', fontSize: 13, fontWeight: 600, textDecoration: hover ? 'underline' : 'none',
+          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, width: 'fit-content',
+        }}>
+        {move}
+        <Icon name="chevRight" size={12} />
+      </a>
+      <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }}
+        style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)', textDecoration: 'none', cursor: 'pointer', width: 'fit-content' }}>
+        {reference}
+      </a>
+    </span>
   );
 }
 

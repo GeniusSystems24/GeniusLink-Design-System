@@ -18,14 +18,13 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <script type="text/babel" src="ds-kit.jsx"></script>
-<script type="text/babel" src="TabPages.jsx"></script>
 <script type="text/babel" src="BrowserTabs.jsx"></script>
 <script type="text/babel">
 const { Shell, Section, Spec, DSPill, BrowserStyleTabBar } = window;
 function App() {
   return (
     <Shell title="BrowserStyleTabBar" subtitle="GeniusLink Design System · V2 Stage D">
-      <Section title="Workspace Tabs" desc="Modern browser-style tab strip: the rounded active tab merges with the surface below; inactive tabs are muted with hairline separators. Pinned tabs (icon-only) anchor on the start edge; right-click any tab for close / duplicate / pin actions; drag to reorder; overflow chevrons appear when tabs run off the edge. The ▾ button lists every open tab to jump to one; closing an unsaved tab prompts before discarding. Resting the pointer on any tab (≈0.5s) raises a mini-page preview — an actual scaled-down render of that page, not a placeholder. Add (+), close (×), unsaved-changes dot, long-title truncation, and ←/→/Home/End keyboard nav. Dark/light + RTL." cols="1fr">
+      <Section title="Workspace Tabs" desc="Modern browser-style tab strip: the rounded active tab merges with the surface below; inactive tabs are muted with hairline separators. Pinned tabs (icon-only) anchor on the start edge; right-click any tab for close / duplicate / pin actions; drag to reorder; overflow chevrons appear when tabs run off the edge. The ▾ button lists every open tab to jump to one; closing an unsaved tab prompts before discarding. Add (+), close (×), unsaved-changes dot, long-title truncation + tooltip, and ←/→/Home/End keyboard nav. Dark/light + RTL." cols="1fr">
         <div style={{ gridColumn: '1 / -1' }}><BrowserStyleTabBar /></div>
       </Section>
       <Section title="LTR & RTL" desc="The same component mirrored — pinned anchor, separators, close buttons, overflow chevrons and the + button all flip with direction. The context menu opens at the cursor in both directions." cols="1fr">
@@ -53,16 +52,6 @@ function App() {
           <DSPill tone="neutral">Dragging</DSPill>
           <DSPill tone="info">Focused</DSPill>
           <DSPill tone="neutral">Overflow</DSPill>
-          <DSPill tone="info">Preview</DSPill>
-        </Spec>
-        <Spec label="Mini-page preview">
-          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
-            <li>Hover-intent: appears after the pointer <strong>rests ~480ms</strong></li>
-            <li>Anchored popover with a caret to the tab; flips above when low</li>
-            <li>Header = icon · title · type · pinned / dirty marks</li>
-            <li>Thumbnail is a <strong>real, scaled-down render</strong> of the live page</li>
-            <li>Non-interactive · dismisses on move-away, click, drag or scroll</li>
-          </ul>
         </Spec>
         <Spec label="Context menu">
           <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>

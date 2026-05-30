@@ -50,6 +50,11 @@ const ICON_PATHS = {
   key: 'M14 7a4 4 0 1 0-3.9 5L3 19v2h3l1-1h2v-2h2l1.1-1.1A4 4 0 0 0 14 7z|M15.5 7.5h.01',
   switch2: 'M16 3h5v5|M21 3l-7 7|M8 21H3v-5|M3 21l7-7',
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M12 6v6l4 2',
+  chevLeft: 'M15 18l-6-6 6-6',
+  pin: 'M12 17v5|M5 9l7-7 7 7-2 2-5-1-5 1-2-2z',
+  copy: 'M9 9h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z|M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
+  alert: 'M12 9v4|M12 17h.01|M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  save: 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z|M17 21v-8H7v8|M7 3v5h8',
 };
 
 function Icon({ name, size = 16, color = 'currentColor', stroke = 1.5 }) {
@@ -647,13 +652,13 @@ function Footer({ left = '© 2024 GeniusLink · System Status: Operational', lin
 /* =========================================================
    PAGE SHELL — handles centered 680px content + footer
    ========================================================= */
-function Page({ breadcrumb, title, titleArabic, titleRight, children }) {
+function Page({ breadcrumb, title, titleArabic, titleRight, children, wide }) {
   return (
     <div style={{
       width: '100%',
-      maxWidth: 940,
+      maxWidth: 1120,
       margin: '0 auto',
-      padding: '64px 24px 0',
+      padding: '64px 32px 0',
       display: 'flex',
       flexDirection: 'column',
       gap: 32,

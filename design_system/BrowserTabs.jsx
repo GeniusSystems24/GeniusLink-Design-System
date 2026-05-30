@@ -6,6 +6,7 @@
 //           pinned tabs (icon-only, anchored) · right-click context menu (close / close others /
 //           close to the right / duplicate / pin·unpin) · unsaved indicator (dirty) ·
 //           close-confirmation dialog for dirty tabs · tab-list dropdown (jump to any open tab) ·
+//           hover/long-press mini-page preview (thumbnail popover, varies by tab type) ·
 //           long-title truncation + tooltip · drag-to-reorder · keyboard (←/→/Home/End) · dark/light · RTL.
 
 const { useState: useStateBT, useRef: useRefBT, useEffect: useEffectBT, useCallback: useCallbackBT } = React;
@@ -30,22 +31,36 @@ function BTIcon({ name, size = 14, color = 'currentColor', stroke = 1.7 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">{raw.split('|').map((d, i) => <path key={i} d={d} />)}</svg>;
 }
 
-function Tab({ tab, active, compact, onSelect, onClose, onContextMenu, first, drag }) {
+function Tab({ tab, active, compact, onSelect, onClose, onContextMenu, onPreview, first, drag }) {
   const [hover, setHover] = useStateBT(false);
   const [closeHover, setCloseHover] = useStateBT(false);
+  const tabRef = useRefBT(null);
+  const previewTimer = useRefBT(null);
   const dragging = drag && drag.dragId === tab.id;
   const isOver = drag && drag.overId === tab.id && drag.dragId !== tab.id;
+  // ── hover-intent: surface the mini-page preview only after the pointer rests ──
+  const clearPreviewTimer = () => { if (previewTimer.current) { clearTimeout(previewTimer.current); previewTimer.current = null; } };
+  const armPreview = () => {
+    if (!onPreview) return;
+    clearPreviewTimer();
+    previewTimer.current = setTimeout(() => {
+      if (tabRef.current) onPreview(tab.id, tabRef.current.getBoundingClientRect(), getComputedStyle(tabRef.current).direction);
+    }, 480);
+  };
+  const dropPreview = () => { clearPreviewTimer(); if (onPreview) onPreview(null); };
+  useEffectBT(() => clearPreviewTimer, []);
   return (
     <div
-      role="tab" aria-selected={active} tabIndex={active ? 0 : -1} title={tab.title}
+      ref={tabRef}
+      role="tab" aria-selected={active} aria-label={tab.title} tabIndex={active ? 0 : -1}
       draggable={!!drag}
-      onDragStart={(e) => { if (drag) { drag.onDragStart(tab.id); e.dataTransfer.effectAllowed = 'move'; } }}
+      onDragStart={(e) => { dropPreview(); if (drag) { drag.onDragStart(tab.id); e.dataTransfer.effectAllowed = 'move'; } }}
       onDragOver={(e) => { if (drag) { e.preventDefault(); drag.onDragOver(tab.id); } }}
       onDrop={(e) => { if (drag) { e.preventDefault(); drag.onDrop(tab.id); } }}
       onDragEnd={() => drag && drag.onDragEnd()}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      onClick={() => onSelect(tab.id)}
-      onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, tab.id); }}
+      onMouseEnter={() => { setHover(true); armPreview(); }} onMouseLeave={() => { setHover(false); dropPreview(); }}
+      onClick={() => { dropPreview(); onSelect(tab.id); }}
+      onContextMenu={(e) => { e.preventDefault(); dropPreview(); onContextMenu(e, tab.id); }}
       style={{
         position: 'relative', display: 'flex', alignItems: 'center', gap: compact ? 0 : 8,
         height: 36, paddingInline: compact ? '0' : '12px 8px',
@@ -183,6 +198,175 @@ function ConfirmDialog({ data, onDiscard, onSave, onCancel }) {
   );
 }
 
+/* ── mini-page thumbnail ── a faux, low-fidelity render of the page a tab holds.
+   Skeleton blocks sit on a recessed "viewport" (--gl-bg); fills use input-bg /
+   hover, with a single blue accent per layout. Varies by tab.icon. */
+function MBar({ w = '100%', h = 6, r = 3, c = 'var(--gl-input-bg)', style }) {
+  return <div style={{ width: w, height: h, borderRadius: r, background: c, flexShrink: 0, ...style }} />;
+}
+function MiniPage({ icon }) {
+  const ACC = 'var(--gl-blue-500)', FILL = 'var(--gl-input-bg)', FAINT = 'var(--gl-hover)', LINE = 'var(--gl-border)';
+  const pad = { padding: 12, display: 'flex', flexDirection: 'column', gap: 8, height: '100%', boxSizing: 'border-box' };
+  if (icon === 'ledger') {
+    return (
+      <div style={pad}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <MBar w={64} h={9} c={ACC} /><div style={{ flex: 1 }} /><MBar w={22} h={9} c={FILL} /><MBar w={22} h={9} c={FILL} />
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <MBar w="34%" h={8} c={FAINT} /><MBar w="22%" h={8} c={FAINT} /><MBar w="20%" h={8} c={FAINT} /><MBar w="16%" h={8} c={FAINT} />
+        </div>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <MBar w="34%" h={7} c={FILL} /><MBar w="22%" h={7} c={FILL} /><MBar w="20%" h={7} c={FILL} /><MBar w="16%" h={7} c={i === 2 ? ACC : FILL} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (icon === 'doc') {
+    return (
+      <div style={pad}>
+        <MBar w="62%" h={12} r={4} c={ACC} />
+        <div style={{ display: 'flex', gap: 6 }}><MBar w={42} h={6} c={FAINT} /><MBar w={56} h={6} c={FAINT} /></div>
+        <div style={{ height: 1, background: LINE, margin: '2px 0' }} />
+        {['100%', '100%', '88%'].map((w, i) => <MBar key={i} w={w} h={6} c={FILL} />)}
+        <div style={{ height: 4 }} />
+        {['100%', '94%', '100%', '70%'].map((w, i) => <MBar key={i} w={w} h={6} c={FILL} />)}
+      </div>
+    );
+  }
+  if (icon === 'store') {
+    return (
+      <div style={{ ...pad, gap: 8 }}>
+        <div style={{ height: 30, borderRadius: 6, background: FAINT, position: 'relative', flexShrink: 0 }}>
+          <MBar w={48} h={8} c={ACC} style={{ position: 'absolute', insetInlineStart: 8, bottom: 8 }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, flex: 1 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} style={{ background: FILL, borderRadius: 5, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ height: 16, background: FAINT, borderRadius: 3 }} />
+              <MBar w="72%" h={5} c={LINE} /><MBar w="44%" h={5} c={ACC} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (icon === 'chart') {
+    const bars = [42, 64, 38, 78, 52, 88, 60];
+    return (
+      <div style={pad}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ flex: 1, background: FILL, borderRadius: 5, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <MBar w="58%" h={5} c={LINE} /><MBar w="82%" h={9} c={i === 0 ? ACC : FAINT} />
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, background: FILL, borderRadius: 6, padding: 8, display: 'flex', alignItems: 'flex-end', gap: 5 }}>
+          {bars.map((h, i) => <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 5 ? ACC : FAINT, borderRadius: '2px 2px 0 0' }} />)}
+        </div>
+      </div>
+    );
+  }
+  if (icon === 'user') {
+    return (
+      <div style={pad}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 999, background: FAINT, flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}><MBar w="55%" h={8} c={ACC} /><MBar w="38%" h={6} c={FAINT} /></div>
+        </div>
+        <div style={{ height: 1, background: LINE, margin: '2px 0' }} />
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ width: 16, height: 16, borderRadius: 999, background: FILL, flexShrink: 0 }} />
+            <MBar w={`${70 - i * 8}%`} h={6} c={FILL} /><div style={{ flex: 1 }} /><MBar w={20} h={6} c={i === 1 ? ACC : FAINT} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  // globe / generic web page
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 9px', borderBottom: `1px solid ${LINE}`, flexShrink: 0 }}>
+        {[0, 1, 2].map((i) => <span key={i} style={{ width: 5, height: 5, borderRadius: 999, background: FAINT }} />)}
+        <MBar w="62%" h={8} r={999} c={FAINT} style={{ marginInlineStart: 4 }} />
+      </div>
+      <div style={{ ...pad, paddingTop: 11 }}>
+        <MBar w="70%" h={11} c={ACC} />
+        {['100%', '100%', '90%'].map((w, i) => <MBar key={i} w={w} h={6} c={FILL} />)}
+        <div style={{ height: 3 }} />
+        <div style={{ display: 'flex', gap: 6 }}><MBar w="48%" h={26} r={5} c={FAINT} /><MBar w="48%" h={26} r={5} c={FAINT} /></div>
+      </div>
+    </div>
+  );
+}
+
+const PREVIEW_META = {
+  ledger: 'Accounting · Ledger', doc: 'Journal · Document', store: 'Branch · Storefront',
+  chart: 'Analytics · Dashboard', user: 'Directory · People', globe: 'Workspace · Page',
+};
+
+/* hover/long-press preview popover — anchored to the hovered tab, non-interactive */
+function TabPreview({ data, onClose }) {
+  const [show, setShow] = useStateBT(false);
+  const CARD_W = 268, CARD_H = 200;
+  useEffectBT(() => {
+    if (!data) return;
+    const t = setTimeout(() => setShow(true), 16);   // robust even when rAF is throttled
+    const dismiss = () => onClose && onClose();
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+    return () => { clearTimeout(t); window.removeEventListener('scroll', dismiss, true); window.removeEventListener('resize', dismiss); };
+  }, []);
+  if (!data || !data.tab) return null;
+  const { tab, rect, dir } = data;
+  const rtl = dir === 'rtl';
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - CARD_W - 8));
+  let top = rect.bottom + 9, above = false;
+  if (top + CARD_H > window.innerHeight - 8) { top = rect.top - CARD_H - 9; above = true; }
+  const arrowX = Math.max(16, Math.min(rect.left + rect.width / 2 - left, CARD_W - 16));
+  return (
+    <div style={{
+      position: 'fixed', left, top, width: CARD_W, zIndex: 'var(--gl-z-tooltip)', pointerEvents: 'none',
+      opacity: show ? 1 : 0, transform: show ? 'translateY(0)' : `translateY(${above ? 5 : -5}px)`,
+      transition: 'opacity var(--gl-dur-base) var(--gl-ease-out), transform var(--gl-dur-base) var(--gl-ease-out)',
+      fontFamily: 'var(--gl-font-body)',
+    }}>
+      <div style={{ background: 'var(--gl-surface)', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', boxShadow: 'var(--gl-shadow-pop)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px', borderBottom: '1px solid var(--gl-border)' }}>
+          <span style={{ display: 'flex', color: 'var(--gl-blue-500)', flexShrink: 0 }}><BTIcon name={tab.icon || 'globe'} size={15} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gl-fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.title}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--gl-fg-3)', fontFamily: 'var(--gl-font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{PREVIEW_META[tab.icon] || PREVIEW_META.globe}</div>
+          </div>
+          {tab.pinned && <span style={{ display: 'flex', color: 'var(--gl-fg-3)', flexShrink: 0 }} title="Pinned"><BTIcon name="pin" size={12} /></span>}
+          {tab.dirty && <span title="Unsaved changes" style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--gl-warning-500)', flexShrink: 0 }} />}
+        </div>
+        {/* live miniature: a real, scaled-down render of the page this tab holds */}
+        <div style={{ position: 'relative', width: CARD_W, height: 150, overflow: 'hidden', background: 'var(--gl-surface)', borderTop: '1px solid var(--gl-border)' }}>
+          {window.TabPage
+            ? <div style={{ position: 'absolute', top: 0, [rtl ? 'right' : 'left']: 0, width: 940, padding: 20, boxSizing: 'border-box', transform: `scale(${CARD_W / 940})`, transformOrigin: rtl ? 'top right' : 'top left', direction: rtl ? 'rtl' : 'ltr', pointerEvents: 'none' }}>
+                {React.createElement(window.TabPage, { tab })}
+              </div>
+            : <div style={{ height: '100%', background: 'var(--gl-bg)' }}><MiniPage icon={tab.icon} /></div>}
+          {/* sheen so the crop reads as a thumbnail, not a clipped page */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, transparent 78%, color-mix(in srgb, var(--gl-surface) 70%, transparent))' }} />
+        </div>
+      </div>
+      <span style={{
+        position: 'absolute', insetInlineStart: arrowX - 5, width: 9, height: 9, background: 'var(--gl-surface)',
+        transform: 'rotate(45deg)',
+        ...(above
+          ? { bottom: -5, borderRight: '1px solid var(--gl-border-strong)', borderBottom: '1px solid var(--gl-border-strong)' }
+          : { top: -5, borderLeft: '1px solid var(--gl-border-strong)', borderTop: '1px solid var(--gl-border-strong)' }),
+      }} />
+    </div>
+  );
+}
+
 function BrowserStyleTabBar({ tabsState }) {
   const seedRef = useRefBT(10);
   const [tabs, setTabs] = useStateBT(tabsState || [
@@ -199,6 +383,7 @@ function BrowserStyleTabBar({ tabsState }) {
   const [chev, setChev] = useStateBT({ start: false, end: false });
   const [confirm, setConfirm] = useStateBT(null);      // { id, title } — dirty-close guard
   const [listOpen, setListOpen] = useStateBT(false);   // tab-list dropdown
+  const [preview, setPreview] = useStateBT(null);      // { id, rect } — hover mini-page preview
   const stripRef = useRefBT(null);
   const listBtnRef = useRefBT(null);
 
@@ -248,6 +433,11 @@ function BrowserStyleTabBar({ tabsState }) {
   };
 
   const select = (id) => setActive(id);
+  // hover preview: ignore while dragging or with a menu/dialog already open
+  const handlePreview = (id, rect, dir) => {
+    if (id == null || dragId || menu || confirm) { setPreview(null); return; }
+    setPreview({ id, rect, dir });
+  };
   const refocusActive = (closedId, list) => {
     if (active !== closedId || !list.length) return;
     const oi = ordered.findIndex((t) => t.id === closedId);
@@ -297,7 +487,7 @@ function BrowserStyleTabBar({ tabsState }) {
   };
 
   const activeTab = tabs.find((t) => t.id === active);
-  const openMenu = (e, id) => setMenu({ id, x: e.clientX, y: e.clientY });
+  const openMenu = (e, id) => { setPreview(null); setMenu({ id, x: e.clientX, y: e.clientY }); };
   const menuTab = menu && tabs.find((t) => t.id === menu.id);
   const menuItems = menuTab ? [
     { icon: 'closeRight', label: 'Close tab', hint: 'Del', danger: true, run: () => requestClose(menuTab.id) },
@@ -324,13 +514,13 @@ function BrowserStyleTabBar({ tabsState }) {
         {/* pinned tabs — anchored, do not scroll */}
         {pinned.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexShrink: 0, marginInlineEnd: 4 }}>
-            {pinned.map((t, i) => <Tab key={t.id} tab={t} first={i === 0} compact active={t.id === active} onSelect={select} onClose={requestClose} onContextMenu={openMenu} drag={null} />)}
+            {pinned.map((t, i) => <Tab key={t.id} tab={t} first={i === 0} compact active={t.id === active} onSelect={select} onClose={requestClose} onContextMenu={openMenu} onPreview={handlePreview} drag={null} />)}
             <span style={{ width: 1, alignSelf: 'stretch', margin: '8px 4px 0', background: 'var(--gl-border-strong)' }} />
           </div>
         )}
         {chevBtn(false, chev.start)}
         <div ref={stripRef} style={{ display: 'flex', alignItems: 'flex-end', gap: 2, overflowX: 'auto', flex: 1, scrollbarWidth: 'none' }}>
-          {unpinned.map((t, i) => <Tab key={t.id} tab={t} first={i === 0 && pinned.length === 0} active={t.id === active} onSelect={select} onClose={requestClose} onContextMenu={openMenu} drag={drag} />)}
+          {unpinned.map((t, i) => <Tab key={t.id} tab={t} first={i === 0 && pinned.length === 0} active={t.id === active} onSelect={select} onClose={requestClose} onContextMenu={openMenu} onPreview={handlePreview} drag={drag} />)}
         </div>
         {chevBtn(true, chev.end)}
         <button aria-label="New tab" onClick={add} title="New tab"
@@ -341,31 +531,24 @@ function BrowserStyleTabBar({ tabsState }) {
         </button>
         <button ref={listBtnRef} aria-label="Show all tabs" aria-haspopup="menu" aria-expanded={listOpen} title="Show all tabs"
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setListOpen((v) => !v)}
+          onClick={() => { setPreview(null); setListOpen((v) => !v); }}
           style={{ width: 32, height: 32, marginInlineStart: 2, marginBottom: 2, borderRadius: 7, border: 'none', background: listOpen ? 'var(--gl-hover)' : 'transparent', color: listOpen ? 'var(--gl-fg-1)' : 'var(--gl-fg-3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--gl-hover)'; e.currentTarget.style.color = 'var(--gl-fg-1)'; }}
           onMouseLeave={(e) => { if (!listOpen) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gl-fg-3)'; } }}>
           <BTIcon name="caret" size={16} />
         </button>
       </div>
-      {/* content surface merges with active tab */}
-      <div style={{ background: 'var(--gl-surface)', padding: '28px 24px', minHeight: 120, borderTop: '1px solid var(--gl-border)' }}>
-        {activeTab ? (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: 'var(--gl-blue-500)', display: 'flex' }}><BTIcon name={activeTab.icon || 'globe'} size={18} /></span>
-              <span style={{ fontFamily: 'var(--gl-font-display)', fontWeight: 700, fontSize: 18, color: 'var(--gl-fg-1)' }}>{activeTab.title}</span>
-              {activeTab.pinned && <span style={{ display: 'flex', color: 'var(--gl-fg-3)' }} title="Pinned"><BTIcon name="pin" size={14} /></span>}
-              {activeTab.dirty && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--gl-warning-500)', background: 'color-mix(in srgb, var(--gl-warning-500) 16%, transparent)', padding: '3px 8px', borderRadius: 999 }}>Unsaved</span>}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--gl-fg-3)', marginTop: 10, lineHeight: 1.55 }}>Tab content for “{activeTab.title}”. <strong>Right-click any tab</strong> for close / duplicate / pin actions, <strong>drag to reorder</strong>, use ← / → / Home / End to move, and the chevrons appear when tabs overflow. Closing the <strong>unsaved</strong> tab prompts before discarding; the <strong>▾ list</strong> jumps to any open tab. Pinned tabs stay anchored on the start edge.</div>
-          </div>
-        ) : <div style={{ fontSize: 13, color: 'var(--gl-fg-3)' }}>No open tabs — press + to start.</div>}
+      {/* content surface merges with active tab — renders the real page this tab holds */}
+      <div style={{ background: 'var(--gl-surface)', borderTop: '1px solid var(--gl-border)' }}>
+        {activeTab
+          ? <div style={{ maxHeight: 440, overflow: 'auto', padding: '24px' }}>{window.TabPage ? React.createElement(window.TabPage, { tab: activeTab }) : null}</div>
+          : <div style={{ padding: '28px 24px', fontSize: 13, color: 'var(--gl-fg-3)' }}>No open tabs — press + to start.</div>}
       </div>
       <TabMenu menu={menu} items={menuItems} onClose={() => setMenu(null)} />
       <TabListMenu open={listOpen} anchorRef={listBtnRef} tabs={ordered} active={active}
         onPick={(id) => { select(id); }} onClose={() => setListOpen(false)} />
       <ConfirmDialog data={confirm} onDiscard={confirmDiscard} onSave={confirmSave} onCancel={() => setConfirm(null)} />
+      <TabPreview key={preview && preview.id} data={preview ? { tab: tabs.find((t) => t.id === preview.id), rect: preview.rect, dir: preview.dir } : null} onClose={() => setPreview(null)} />
     </div>
   );
 }

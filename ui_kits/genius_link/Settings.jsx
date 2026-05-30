@@ -35,7 +35,7 @@ const ALL_NAV = SETTINGS_NAV.flatMap((g) => g.items);
 /* ───────── two-pane shell ───────── */
 function SettingsLayout({ active, onNavigate, title, sub, actions, children }) {
   return (
-    <div style={{ maxWidth: 920, margin: '0 auto', padding: '64px 32px 0', display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div style={{ maxWidth: 1120, margin: '0 auto', padding: '64px 32px 0', display: 'flex', flexDirection: 'column', gap: 28 }}>
       <Breadcrumb items={[{ label: 'Settings', onClick: () => onNavigate('settingsHub') }, title]} />
       <div style={{ display: 'flex', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0, flex: 1 }}>
