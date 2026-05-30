@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GeniusLink — BrowserStyleTabBar</title>
+<meta name="viewport" content="width=1180" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin: 0; padding: 0; } body { font-family: var(--gl-font-body); }
+  ::-webkit-scrollbar { width: 9px; height: 9px; } ::-webkit-scrollbar-thumb { background: var(--gl-border-strong); border-radius: 5px; }
+  [role="tablist"]::-webkit-scrollbar, [role="tablist"] div::-webkit-scrollbar { height: 0; display: none; }
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="14" y="28" width="30" height="16" rx="4" fill="#1E2025"/><rect x="46" y="30" width="26" height="14" rx="3" fill="#33353A"/><rect x="14" y="44" width="72" height="30" rx="4" fill="#1E2025"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ds-kit.jsx"></script>
+<script type="text/babel" src="BrowserTabs.jsx"></script>
+<script type="text/babel">
+const { Shell, Section, Spec, DSPill, BrowserStyleTabBar } = window;
+function App() {
+  return (
+    <Shell title="BrowserStyleTabBar" subtitle="GeniusLink Design System · V2 Stage D">
+      <Section title="Workspace Tabs" desc="Modern browser-style tab strip: the rounded active tab merges with the surface below; inactive tabs are muted with hairline separators. Pinned tabs (icon-only) anchor on the start edge; right-click any tab for close / duplicate / pin actions; drag to reorder; overflow chevrons appear when tabs run off the edge. The ▾ button lists every open tab to jump to one; closing an unsaved tab prompts before discarding. Add (+), close (×), unsaved-changes dot, long-title truncation + tooltip, and ←/→/Home/End keyboard nav. Dark/light + RTL." cols="1fr">
+        <div style={{ gridColumn: '1 / -1' }}><BrowserStyleTabBar /></div>
+      </Section>
+      <Section title="LTR & RTL" desc="The same component mirrored — pinned anchor, separators, close buttons, overflow chevrons and the + button all flip with direction. The context menu opens at the cursor in both directions." cols="1fr">
+        <div style={{ gridColumn: '1 / -1' }} dir="rtl"><BrowserStyleTabBar tabsState={[{ id: 11, title: 'دليل الحسابات', icon: 'ledger', pinned: true }, { id: 12, title: 'قيد افتتاحي — JV-2024-0042', icon: 'doc', dirty: true }, { id: 13, title: 'لوحة التحكم', icon: 'chart' }, { id: 14, title: 'ميزان المراجعة — الربع الثالث', icon: 'ledger' }]} /></div>
+      </Section>
+      <Section title="Documentation" desc="Anatomy, states and props for the component — mirrors the DESIGN_SYSTEM.md template." cols="repeat(auto-fill, minmax(280px, 1fr))">
+        <Spec label="Anatomy">
+          <ol style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Strip container (sits on <code style={{ fontFamily: 'var(--gl-font-mono)' }}>--gl-bg</code>)</li>
+            <li>Pinned region · icon-only · anchored</li>
+            <li>Scrolling tab region + overflow chevrons</li>
+            <li>Tab = leading icon · label · dirty dot / close ×</li>
+            <li>New-tab (+) · tab-list (▾) buttons</li>
+            <li>Content surface that merges with the active tab</li>
+            <li>Right-click context menu</li>
+            <li>Dirty-close confirmation dialog</li>
+          </ol>
+        </Spec>
+        <Spec label="States">
+          <DSPill tone="info">Active</DSPill>
+          <DSPill tone="neutral">Inactive</DSPill>
+          <DSPill tone="neutral">Hover</DSPill>
+          <DSPill tone="neutral">Pinned</DSPill>
+          <DSPill tone="warning">Dirty</DSPill>
+          <DSPill tone="neutral">Dragging</DSPill>
+          <DSPill tone="info">Focused</DSPill>
+          <DSPill tone="neutral">Overflow</DSPill>
+        </Spec>
+        <Spec label="Context menu">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Close tab</li>
+            <li>Close other tabs</li>
+            <li>Close tabs to the right</li>
+            <li>Duplicate tab</li>
+            <li>Pin / Unpin tab</li>
+          </ul>
+        </Spec>
+        <Spec label="Overflow & jump">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>‹ › chevrons fade in only when the strip overflows</li>
+            <li>▾ tab-list dropdown lists every open tab</li>
+            <li>Active row highlighted · pinned / dirty marked</li>
+            <li>Pick jumps to the tab · <code style={{ fontFamily: 'var(--gl-font-mono)' }}>Esc</code> / outside-click closes</li>
+          </ul>
+        </Spec>
+        <Spec label="Unsaved guard">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Closing a <strong>dirty</strong> tab opens a confirm dialog</li>
+            <li><strong>Discard &amp; close</strong> — danger, drops edits</li>
+            <li><strong>Save &amp; close</strong> — clears dirty, then closes</li>
+            <li><strong>Cancel</strong> / <code style={{ fontFamily: 'var(--gl-font-mono)' }}>Esc</code> / backdrop — keep the tab</li>
+          </ul>
+        </Spec>
+        <Spec label="Keyboard">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li><code style={{ fontFamily: 'var(--gl-font-mono)' }}>← / →</code> — previous / next tab</li>
+            <li><code style={{ fontFamily: 'var(--gl-font-mono)' }}>Home / End</code> — first / last tab</li>
+            <li>Right-click — context menu · <code style={{ fontFamily: 'var(--gl-font-mono)' }}>Esc</code> closes it</li>
+          </ul>
+        </Spec>
+        <Spec label="Props">
+          <div style={{ fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7, fontFamily: 'var(--gl-font-mono)' }}>
+            tabsState?: Tab[]<br />
+            Tab = {'{'} id, title, icon,<br />
+            &nbsp;&nbsp;dirty?, pinned? {'}'}<br />
+            icon ∈ ledger · doc · store ·<br />
+            &nbsp;&nbsp;chart · user · globe
+          </div>
+        </Spec>
+        <Spec label="Do & Don't">
+          <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+            <div style={{ color: 'var(--gl-success-500)' }}>✓ Pin long-lived references (chart of accounts).</div>
+            <div style={{ color: 'var(--gl-success-500)' }}>✓ Warn on closing a dirty tab.</div>
+            <div style={{ color: 'var(--gl-danger-500)', marginTop: 8 }}>✗ More than ~3 pinned tabs.</div>
+            <div style={{ color: 'var(--gl-danger-500)' }}>✗ Hiding the active tab off-screen on open.</div>
+          </div>
+        </Spec>
+      </Section>
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

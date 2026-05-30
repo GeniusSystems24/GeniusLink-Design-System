@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GeniusLink — Combo Box</title>
+<meta name="viewport" content="width=1180" />
+<link rel="stylesheet" href="tokens.css" />
+<style>html,body{margin:0;padding:0}body{font-family:var(--gl-font-body)}::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:5px}</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="18" y="30" width="64" height="14" rx="4" fill="#33353A"/><rect x="18" y="48" width="64" height="30" rx="4" fill="#1E2025" stroke="#4A7CFF"/><rect x="24" y="54" width="40" height="6" rx="3" fill="#4A7CFF"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ds-kit.jsx"></script>
+<script type="text/babel">
+const { GLIcon, DSSpinner, DSPill, Shell, Section, Spec } = window;
+const OPTS = [
+  { v: '1001', l: 'Cash Box', d: 'Asset · 42,500.00 SAR' },
+  { v: '1100', l: 'Bank · NCB Main', d: 'Asset · 186,420.00 SAR' },
+  { v: '1200', l: 'Inventory (WIP)', d: 'Asset · 54,890.00 SAR' },
+  { v: '2001', l: 'Accounts Payable', d: 'Liability · 23,140.00 SAR' },
+  { v: '4001', l: 'Sales Revenue', d: 'Income · 89,200.00 SAR' },
+];
+function Trigger({ open, onClick, children, error, disabled, icon }) {
+  return <div onClick={disabled ? null : onClick} style={{ height: 44, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gl-input-bg)', border: `${open || error ? 2 : 1}px solid ${error ? 'var(--gl-danger-500)' : open ? 'var(--gl-blue-500)' : 'var(--gl-border-strong)'}`, borderRadius: 'var(--gl-radius-sm)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 }}>{icon && <GLIcon name={icon} size={16} color="var(--gl-fg-3)" />}<div style={{ flex: 1, minWidth: 0 }}>{children}</div><GLIcon name="chevD" size={16} color="var(--gl-fg-3)" /></div>;
+}
+function Dropdown({ children }) {
+  return <div style={{ marginTop: 6, background: 'var(--gl-surface)', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', boxShadow: 'var(--gl-shadow)', overflow: 'hidden', zIndex: 'var(--gl-z-dropdown)' }}>{children}</div>;
+}
+function Opt({ o, onClick, selected, multi }) {
+  const [h, setH] = React.useState(false);
+  return <div onMouseEnter={() => setH(1)} onMouseLeave={() => setH(0)} onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', background: h ? 'var(--gl-hover)' : 'transparent' }}>{multi && <span style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${selected ? 'var(--gl-blue-500)' : 'var(--gl-border-strong)'}`, background: selected ? 'var(--gl-blue-500)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{selected && <GLIcon name="check" size={11} color="#fff" stroke={2.5} />}</span>}<div style={{ flex: 1 }}><div style={{ fontSize: 13.5, color: 'var(--gl-fg-1)', fontWeight: 500 }}>{o.l}</div>{o.d && <div style={{ fontSize: 11, color: 'var(--gl-fg-3)', marginTop: 2 }}>{o.d}</div>}</div>{!multi && selected && <GLIcon name="check" size={15} color="var(--gl-blue-500)" />}</div>;
+}
+function SearchHead({ q, onQ }) {
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--gl-border)' }}><GLIcon name="searchO" size={15} color="var(--gl-fg-3)" /><input autoFocus value={q} onChange={e => onQ(e.target.value)} placeholder="Search accounts…" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--gl-fg-1)', fontSize: 13.5, fontFamily: 'var(--gl-font-body)' }} /></div>;
+}
+function Single() {
+  const [open, setOpen] = React.useState(true); const [q, setQ] = React.useState(''); const [sel, setSel] = React.useState('1100');
+  const f = OPTS.filter(o => o.l.toLowerCase().includes(q.toLowerCase()));
+  const s = OPTS.find(o => o.v === sel);
+  return <div style={{ width: '100%' }}><Trigger open={open} onClick={() => setOpen(!open)} icon="ledger"><span style={{ fontSize: 13.5, color: 'var(--gl-fg-1)' }}>{s ? s.l : 'Select account…'}</span></Trigger>{open && <Dropdown><SearchHead q={q} onQ={setQ} />{f.map(o => <Opt key={o.v} o={o} selected={o.v === sel} onClick={() => { setSel(o.v); setOpen(false); }} />)}</Dropdown>}</div>;
+}
+function Multi() {
+  const [sel, setSel] = React.useState(['1001', '1200']);
+  const toggle = v => setSel(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+  return <div style={{ width: '100%' }}><Trigger open onClick={() => {}} icon="ledger"><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{sel.length === 0 ? <span style={{ fontSize: 13.5, color: 'var(--gl-fg-3)' }}>Select…</span> : sel.map(v => { const o = OPTS.find(x => x.v === v); return <span key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, padding: '0 8px', background: 'color-mix(in srgb, var(--gl-blue-500) 16%, transparent)', color: 'var(--gl-blue-500)', borderRadius: 'var(--gl-radius-pill)', fontSize: 12, fontWeight: 600 }}>{o.l}<GLIcon name="close" size={11} /></span>; })}</div></Trigger><Dropdown>{OPTS.map(o => <Opt key={o.v} o={o} multi selected={sel.includes(o.v)} onClick={() => toggle(o.v)} />)}</Dropdown></div>;
+}
+function AsyncBox() {
+  return <div style={{ width: '100%' }}><Trigger open onClick={() => {}} icon="search"><span style={{ fontSize: 13.5, color: 'var(--gl-fg-3)' }}>Searching “riy”…</span></Trigger><Dropdown><div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 12px', color: 'var(--gl-fg-3)' }}><DSSpinner size={15} /><span style={{ fontSize: 13 }}>Loading options…</span></div></Dropdown></div>;
+}
+function EmptyBox() {
+  return <div style={{ width: '100%' }}><Trigger open onClick={() => {}} icon="search"><span style={{ fontSize: 13.5, color: 'var(--gl-fg-1)' }}>zzz</span></Trigger><Dropdown><SearchHead q="zzz" onQ={() => {}} /><div style={{ textAlign: 'center', padding: '24px 12px', color: 'var(--gl-fg-3)' }}><GLIcon name="inbox" size={22} /><div style={{ fontSize: 12.5, marginTop: 8 }}>No matching accounts</div></div></Dropdown></div>;
+}
+function App() {
+  return (
+    <Shell title="Combo Box" subtitle="GeniusLink Design System · V2 Stage G">
+      <Section title="Selection" desc="Searchable single & multi-select with leading icons, option descriptions, keyboard nav, overlay positioning. Form-validation ready. RTL/LTR." cols="repeat(auto-fill, minmax(320px, 1fr))">
+        <Spec label="Single · searchable (open)"><div style={{ minHeight: 300 }}><Single /></div></Spec>
+        <Spec label="Multi-select + chips"><div style={{ minHeight: 300 }}><Multi /></div></Spec>
+      </Section>
+      <Section title="States" cols="repeat(auto-fill, minmax(320px, 1fr))">
+        <Spec label="Async loading"><div style={{ minHeight: 110 }}><AsyncBox /></div></Spec>
+        <Spec label="Empty results"><div style={{ minHeight: 170 }}><EmptyBox /></div></Spec>
+        <Spec label="Disabled"><Trigger disabled icon="ledger"><span style={{ fontSize: 13.5, color: 'var(--gl-fg-3)' }}>Locked account</span></Trigger></Spec>
+        <Spec label="Error + validation"><div style={{ width: '100%' }}><Trigger error icon="ledger"><span style={{ fontSize: 13.5, color: 'var(--gl-fg-3)' }}>Select account…</span></Trigger><div style={{ fontSize: 11.5, color: 'var(--gl-danger-500)', marginTop: 6 }}>An account is required.</div></div></Spec>
+      </Section>
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

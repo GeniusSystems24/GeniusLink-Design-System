@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GeniusLink — Editable Table</title>
+<meta name="viewport" content="width=1180" />
+<link rel="stylesheet" href="tokens.css" />
+<style>html,body{margin:0;padding:0}body{font-family:var(--gl-font-body)}::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:5px}
+  .xl-wrap:focus{outline:none}
+  .xl-cell{outline:none}
+  @keyframes tblScale{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+  @keyframes tblSheet{from{transform:translateY(100%)}to{transform:none}}
+  @media (prefers-reduced-motion: reduce){@keyframes tblScale{from{opacity:1}to{opacity:1}}@keyframes tblSheet{from{transform:none}to{transform:none}}}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="14" y="26" width="72" height="48" fill="none" stroke="#33353A"/><line x1="14" y1="38" x2="86" y2="38" stroke="#33353A"/><line x1="14" y1="50" x2="86" y2="50" stroke="#33353A"/><line x1="14" y1="62" x2="86" y2="62" stroke="#33353A"/><line x1="38" y1="26" x2="38" y2="74" stroke="#33353A"/><line x1="62" y1="26" x2="62" y2="74" stroke="#33353A"/><rect x="38" y="50" width="24" height="12" fill="none" stroke="#4A7CFF" stroke-width="2"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ds-kit.jsx"></script>
+<script type="text/babel">
+const { GLIcon, DSButton, DSIconButton, DSSpinner, DSPill, Shell, Section, Spec } = window;
+
+// Column model. type: 'text' | 'num' | 'enum'
+const COLS = [
+  { key: 'code', label: 'Code', w: 110, align: 'left', mono: true, type: 'text' },
+  { key: 'name', label: 'Account', w: 240, align: 'left', type: 'text', required: true },
+  { key: 'type', label: 'Type', w: 150, align: 'left', type: 'enum', opts: ['Asset', 'Liability', 'Equity', 'Income', 'Expense'] },
+  { key: 'bal', label: 'Balance', w: 150, align: 'right', mono: true, type: 'num' },
+];
+const SEED = [
+  { code: '1001', name: 'Cash Box', type: 'Asset', bal: '42,500.00' },
+  { code: '1100', name: 'Bank · NCB Main', type: 'Asset', bal: '186,420.00' },
+  { code: '2001', name: 'Accounts Payable', type: 'Liability', bal: '23,140.00' },
+  { code: '4001', name: 'Sales Revenue', type: 'Income', bal: '89,200.00' },
+];
+const colLabel = (c) => String.fromCharCode(65 + c); // A, B, C…
+const blankRow = () => ({ code: '', name: '', type: 'Asset', bal: '' });
+
+/* ---- Confirm dialog (used for delete on desktop + mobile) ---- */
+function ConfirmDialog({ open, title, body, confirmLabel = 'Delete', danger = true, onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 360, maxWidth: '100%', background: 'var(--gl-surface)', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-lg)', boxShadow: 'var(--gl-shadow)', overflow: 'hidden', animation: 'tblScale 180ms cubic-bezier(.2,0,0,1)' }}>
+        <div style={{ padding: 18 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--gl-fg-1)' }}>{title}</div>
+          <div style={{ fontSize: 13, color: 'var(--gl-fg-3)', marginTop: 8, lineHeight: 1.5 }}>{body}</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: 14, borderTop: '1px solid var(--gl-border)' }}>
+          <DSButton size="sm" variant="secondary" onClick={onCancel}>Cancel</DSButton>
+          <DSButton size="sm" variant={danger ? 'danger' : 'primary'} icon={danger ? 'trash' : 'check'} onClick={onConfirm}>{confirmLabel}</DSButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Bottom sheet add/edit form (mobile) ---- */
+function SheetField({ label, value, onChange, mono, required }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--gl-fg-2)', marginBottom: 7 }}>{label}{required && <span style={{ color: 'var(--gl-danger-500)' }}> *</span>}</div>
+      <input value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', height: 46, padding: '0 14px', background: 'var(--gl-input-bg)', border: `1px solid ${required && !value.trim() ? 'var(--gl-danger-500)' : 'var(--gl-border-strong)'}`, borderRadius: 8, fontFamily: mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 14, color: 'var(--gl-fg-1)', outline: 'none', boxSizing: 'border-box' }} />
+    </div>
+  );
+}
+function SheetSelect({ label, value, opts, onChange }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--gl-fg-2)', marginBottom: 7 }}>{label}</div>
+      <select value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', height: 46, padding: '0 12px', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border-strong)', borderRadius: 8, fontFamily: 'var(--gl-font-body)', fontSize: 14, color: 'var(--gl-fg-1)', outline: 'none' }}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select>
+    </div>
+  );
+}
+function RowSheet({ open, initial, onSave, onClose }) {
+  const [v, setV] = React.useState(blankRow());
+  React.useEffect(() => { if (open) setV(initial ? { ...initial } : blankRow()); }, [open, initial]);
+  if (!open) return null;
+  const set = (k, val) => setV(p => ({ ...p, [k]: val }));
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 420, maxWidth: '100%', background: 'var(--gl-surface)', borderRadius: '16px 16px 0 0', border: '1px solid var(--gl-border-strong)', borderBottom: 'none', padding: 18, paddingBottom: 28, boxShadow: '0 -12px 32px -8px rgba(0,0,0,.45)', animation: 'tblSheet 260ms cubic-bezier(.2,0,0,1)' }}>
+        <div style={{ width: 36, height: 4, borderRadius: 999, background: 'var(--gl-border-strong)', margin: '0 auto 16px' }} />
+        <div style={{ fontFamily: 'var(--gl-font-display)', fontWeight: 700, fontSize: 17, marginBottom: 16, color: 'var(--gl-fg-1)' }}>{initial ? 'Edit account' : 'Add account'}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <SheetField label="Code" value={v.code} onChange={x => set('code', x)} mono />
+          <SheetField label="Account" value={v.name} onChange={x => set('name', x)} required />
+          <SheetSelect label="Type" value={v.type} opts={COLS[2].opts} onChange={x => set('type', x)} />
+          <SheetField label="Balance" value={v.bal} onChange={x => set('bal', x)} mono />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+          <DSButton variant="secondary" onClick={onClose}>Cancel</DSButton>
+          <DSButton icon="check" onClick={() => { if (v.name.trim()) onSave(v); }}>Save</DSButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExcelGrid() {
+  const [rows, setRows] = React.useState(SEED);
+  const [sel, setSel] = React.useState({ r: 0, c: 0 });
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
+  const [confirm, setConfirm] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+  const nRows = rows.length, nCols = COLS.length;
+
+  const focusGrid = () => { if (wrapRef.current) wrapRef.current.focus(); };
+  React.useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+
+  const setCell = (r, c, val) => setRows(prev => prev.map((row, i) => i === r ? { ...row, [COLS[c].key]: val } : row));
+  const beginEdit = (initial) => { setDraft(initial != null ? initial : String(rows[sel.r][COLS[sel.c].key] ?? '')); setEditing(true); };
+  const commit = (move) => {
+    setCell(sel.r, sel.c, draft);
+    setEditing(false);
+    if (move) moveSel(move.dr, move.dc, true);
+    focusGrid();
+  };
+  const cancel = () => { setEditing(false); focusGrid(); };
+
+  const moveSel = (dr, dc, autoAddRow) => {
+    setSel(s => {
+      let r = s.r + dr, c = s.c + dc;
+      if (c < 0) { c = nCols - 1; r -= 1; }
+      if (c >= nCols) { c = 0; r += 1; }
+      if (r < 0) r = 0;
+      if (r >= nRows) { if (autoAddRow) { setRows(prev => [...prev, blankRow()]); } else { r = nRows - 1; } }
+      return { r: Math.max(0, Math.min(r, autoAddRow ? nRows : nRows - 1)), c: Math.max(0, Math.min(c, nCols - 1)) };
+    });
+  };
+
+  const addRow = () => { setRows(prev => [...prev, blankRow()]); setSel({ r: nRows, c: 0 }); setTimeout(focusGrid, 0); };
+  const delRow = () => {
+    if (nRows <= 1) { setRows([blankRow()]); setSel({ r: 0, c: 0 }); return; }
+    setRows(prev => prev.filter((_, i) => i !== sel.r));
+    setSel(s => ({ r: Math.min(s.r, nRows - 2), c: s.c }));
+    focusGrid();
+  };
+
+  const onKeyDown = (e) => {
+    if (editing) {
+      if (e.key === 'Enter') { e.preventDefault(); commit({ dr: 1, dc: 0 }); }
+      else if (e.key === 'Tab') { e.preventDefault(); commit({ dr: 0, dc: e.shiftKey ? -1 : 1 }); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowUp': e.preventDefault(); moveSel(-1, 0); break;
+      case 'ArrowDown': e.preventDefault(); moveSel(1, 0); break;
+      case 'ArrowLeft': e.preventDefault(); moveSel(0, -1); break;
+      case 'ArrowRight': e.preventDefault(); moveSel(0, 1); break;
+      case 'Tab': e.preventDefault(); moveSel(0, e.shiftKey ? -1 : 1); break;
+      case 'Enter': e.preventDefault(); beginEdit(); break;
+      case 'Backspace': case 'Delete': e.preventDefault(); setCell(sel.r, sel.c, ''); break;
+      default:
+        if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) { beginEdit(e.key === ' ' ? '' : e.key); }
+    }
+  };
+
+  const activeCol = COLS[sel.c];
+  const totalW = COLS.reduce((s, c) => s + c.w, 0) + 44;
+
+  return (
+    <div style={{ width: '100%' }}>
+      {/* toolbar + formula bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--gl-fg-2)', minWidth: 36, textAlign: 'center', padding: '6px 8px', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border-strong)', borderRadius: 4 }}>{colLabel(sel.c)}{sel.r + 1}</span>
+        <div style={{ flex: 1, minWidth: 180, height: 34, display: 'flex', alignItems: 'center', padding: '0 12px', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)', borderRadius: 4, fontFamily: activeCol.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 13, color: 'var(--gl-fg-1)' }}>{editing ? draft : (rows[sel.r]?.[activeCol.key] || <span style={{ color: 'var(--gl-fg-4)' }}>empty</span>)}</div>
+        <DSButton size="sm" icon="plus" onClick={addRow}>Row</DSButton>
+        <DSButton size="sm" variant="danger" icon="trash" onClick={() => setConfirm(true)}>Delete</DSButton>
+      </div>
+
+      {/* the grid */}
+      <div ref={wrapRef} className="xl-wrap" tabIndex={0} onKeyDown={onKeyDown}
+        style={{ width: 'fit-content', maxWidth: '100%', overflowX: 'auto', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', userSelect: 'none' }}>
+        {/* header */}
+        <div style={{ display: 'grid', gridTemplateColumns: `44px ${COLS.map(c => c.w + 'px').join(' ')}`, background: 'var(--gl-bg)', minWidth: totalW }}>
+          <div style={{ ...hStyle(), borderInlineEnd: '1px solid var(--gl-border)' }}></div>
+          {COLS.map((c, ci) => <div key={c.key} style={{ ...hStyle(ci === sel.c), textAlign: c.align }}>{colLabel(ci)} · {c.label}{c.required && <span style={{ color: 'var(--gl-danger-500)' }}> *</span>}</div>)}
+        </div>
+        {/* rows */}
+        {rows.map((row, r) => (
+          <div key={r} style={{ display: 'grid', gridTemplateColumns: `44px ${COLS.map(c => c.w + 'px').join(' ')}`, minWidth: totalW }}>
+            {/* row number gutter */}
+            <div onClick={() => { setSel({ r, c: 0 }); focusGrid(); }} style={{ ...gutStyle(r === sel.r), }}>{r + 1}</div>
+            {COLS.map((c, ci) => {
+              const active = sel.r === r && sel.c === ci;
+              const isEditing = active && editing;
+              const val = row[c.key];
+              const invalid = c.required && !String(val || '').trim();
+              return (
+                <div key={c.key} className="xl-cell"
+                  onMouseDown={() => { if (!isEditing) { setSel({ r, c: ci }); } }}
+                  onDoubleClick={() => { setSel({ r, c: ci }); beginEdit(); }}
+                  style={{
+                    position: 'relative', height: 36, padding: isEditing ? 0 : '0 10px', display: 'flex', alignItems: 'center',
+                    justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
+                    borderInlineEnd: ci < nCols - 1 ? '1px solid var(--gl-border)' : 'none',
+                    borderBottom: '1px solid var(--gl-border)',
+                    background: active ? 'color-mix(in srgb, var(--gl-blue-500) 10%, var(--gl-surface))' : 'var(--gl-surface)',
+                    boxShadow: active ? 'inset 0 0 0 2px var(--gl-blue-500)' : (invalid ? 'inset 0 0 0 1px var(--gl-danger-500)' : 'none'),
+                    fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 13,
+                    color: val ? 'var(--gl-fg-1)' : 'var(--gl-fg-4)', cursor: 'cell', zIndex: active ? 2 : 1,
+                  }}>
+                  {isEditing
+                    ? (c.type === 'enum'
+                      ? <select ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit()} style={inStyle(c)}>{c.opts.map(o => <option key={o} value={o}>{o}</option>)}</select>
+                      : <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit()} inputMode={c.type === 'num' ? 'decimal' : 'text'} style={inStyle(c)} />)
+                    : (val || (c.required && r === sel.r && ci === sel.c ? '' : (val === '' ? '' : val)))}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+        <span style={{ fontSize: 12, color: 'var(--gl-fg-3)' }}>{nRows} rows · click a cell then type · Enter ↓ · Tab → · Esc cancels · Del clears</span>
+        <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>SAR</span>
+      </div>
+      <ConfirmDialog open={confirm} title={`Delete row ${sel.r + 1}?`}
+        body={`“${rows[sel.r]?.name || 'Untitled'}” will be permanently removed. This action is recorded in the audit log.`}
+        onConfirm={() => { delRow(); setConfirm(false); }} onCancel={() => setConfirm(false)} />
+    </div>
+  );
+}
+function hStyle(activeCol) { return { padding: '9px 10px', fontWeight: 700, fontSize: 10, letterSpacing: '.05em', textTransform: 'uppercase', color: activeCol ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', borderBottom: '1px solid var(--gl-border-strong)', background: activeCol ? 'color-mix(in srgb, var(--gl-blue-500) 10%, var(--gl-bg))' : 'var(--gl-bg)' }; }
+function gutStyle(activeRow) { return { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: activeRow ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', fontWeight: activeRow ? 700 : 400, background: activeRow ? 'color-mix(in srgb, var(--gl-blue-500) 10%, var(--gl-bg))' : 'var(--gl-bg)', borderInlineEnd: '1px solid var(--gl-border-strong)', borderBottom: '1px solid var(--gl-border)', cursor: 'pointer' }; }
+function inStyle(c) { return { width: '100%', height: '100%', padding: '0 9px', background: 'var(--gl-surface)', border: 'none', outline: 'none', fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 13, color: 'var(--gl-fg-1)', textAlign: c.align === 'right' ? 'right' : 'left', boxSizing: 'border-box' }; }
+
+function MobileCards() {
+  const [rows, setRows] = React.useState(SEED.map(r => ({ ...r })));
+  const [sheet, setSheet] = React.useState({ open: false, idx: null });
+  const [del, setDel] = React.useState(null);
+  const save = (v) => { setRows(p => sheet.idx == null ? [...p, v] : p.map((r, i) => i === sheet.idx ? v : r)); setSheet({ open: false, idx: null }); };
+  return (
+    <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <DSButton icon="plus" onClick={() => setSheet({ open: true, idx: null })}>Add Account</DSButton>
+      {rows.map((r, i) => (
+        <div key={i} style={{ background: 'var(--gl-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-lg)', padding: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div><div style={{ fontWeight: 600, fontSize: 14 }}>{r.name || 'Untitled'}</div><div style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)', marginTop: 2 }}>{r.code || '—'} · {r.type}</div></div>
+            <DSPill tone="success">Active</DSPill>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--gl-border)' }}>
+            <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 15, fontWeight: 600 }}>{r.bal || '0.00'} <span style={{ fontSize: 10, color: 'var(--gl-fg-3)' }}>SAR</span></span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <DSIconButton icon="edit" size={32} onClick={() => setSheet({ open: true, idx: i })} />
+              <DSIconButton icon="trash" variant="danger" size={32} onClick={() => setDel(i)} />
+            </div>
+          </div>
+        </div>
+      ))}
+      <RowSheet open={sheet.open} initial={sheet.idx != null ? rows[sheet.idx] : null} onSave={save} onClose={() => setSheet({ open: false, idx: null })} />
+      <ConfirmDialog open={del != null} title="Delete account?"
+        body={`“${(del != null && rows[del]?.name) || 'Untitled'}” will be permanently removed. This action is recorded in the audit log.`}
+        onConfirm={() => { setRows(rows.filter((_, i) => i !== del)); setDel(null); }} onCancel={() => setDel(null)} />
+    </div>
+  );
+}
+function StateBox({ kind }) {
+  if (kind === 'loading') return <div style={{ width: '100%', textAlign: 'center', padding: '40px 0', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-lg)', background: 'var(--gl-surface)' }}><DSSpinner size={26} /><div style={{ fontSize: 13, color: 'var(--gl-fg-3)', marginTop: 12 }}>Loading rows…</div></div>;
+  if (kind === 'empty') return <div style={{ width: '100%', textAlign: 'center', padding: '36px 0', border: '1px dashed var(--gl-border-strong)', borderRadius: 'var(--gl-radius-lg)', color: 'var(--gl-fg-3)' }}><GLIcon name="inbox" size={26} /><div style={{ fontSize: 13, marginTop: 10 }}>No accounts yet</div><div style={{ marginTop: 14 }}><DSButton size="sm" icon="plus">Add Row</DSButton></div></div>;
+  return <div style={{ width: '100%', textAlign: 'center', padding: '36px 0', border: '1px dashed rgba(239,68,68,.4)', background: 'rgba(239,68,68,.05)', borderRadius: 'var(--gl-radius-lg)', color: 'var(--gl-danger-500)' }}><GLIcon name="alert" size={26} /><div style={{ fontSize: 13, marginTop: 10 }}>Failed to load table</div><div style={{ marginTop: 14 }}><DSButton size="sm" variant="secondary">Retry</DSButton></div></div>;
+}
+
+function App() {
+  return (
+    <Shell title="Editable Table" subtitle="GeniusLink Design System · V2 Stage H">
+      <Section title="Spreadsheet grid — Excel-style editing" desc="Click a cell to select it (blue outline + cell reference like B3 in the formula bar). Start typing to overwrite, or double-click / Enter to edit in place. Enter commits & moves down, Tab moves right, Esc cancels, Delete clears. Tab past the last cell or Enter past the last row adds a new row automatically. + Row / Delete manage rows; required cells flag red." cols="1fr">
+        <div style={{ gridColumn: '1 / -1' }}><ExcelGrid /></div>
+      </Section>
+      <Section title="Mobile — stacked cards" desc="Below the md breakpoint the grid becomes editable cards. Tap + Add or the ✎ pencil to open a bottom sheet form; the 🗑 trash opens a confirmation dialog." cols="1fr">
+        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}><MobileCards /></div>
+      </Section>
+      <Section title="States" cols="repeat(auto-fill, minmax(280px, 1fr))">
+        <Spec label="Loading"><StateBox kind="loading" /></Spec>
+        <Spec label="Empty"><StateBox kind="empty" /></Spec>
+        <Spec label="Error"><StateBox kind="error" /></Spec>
+      </Section>
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
