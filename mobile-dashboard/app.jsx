@@ -38,7 +38,7 @@ function usePull(scrollRef, onRefresh, refreshing) {
 
 function App({ t, setTweak }) {
   const lang = t.lang, dark = t.theme === 'dark', dir = lang === 'ar' ? 'rtl' : 'ltr';
-  const [tab, setTab] = useState('accounting');
+  const [tab, setTab] = useState('banking');
   const [cur, setCur] = useState('SAR');
   const [period, setPeriod] = useState('week');
   const [summaryView, setSummaryView] = useState('cards');
@@ -48,7 +48,7 @@ function App({ t, setTweak }) {
   const [tabLoading, setTabLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [, setUpdated] = useState(0);
-  const loaded = useRef(new Set(['accounting']));
+  const loaded = useRef(new Set(['banking']));
   const scrollRef = useRef(null);
   const toastTimer = useRef(null);
 

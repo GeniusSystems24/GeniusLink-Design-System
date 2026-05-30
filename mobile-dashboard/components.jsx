@@ -27,17 +27,20 @@ function SecHead({ title, sub, lang, trailing, marker = 'blue' }) {
   </div>;
 }
 
-/* ── domain tabs (segmented, DS tokens) ── */
+/* ── domain tabs (underline style) ── */
 function DomainTabs({ tabs, active, onChange, lang }) {
-  return <div role="tablist" style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-lg)' }}>
+  return <div role="tablist" style={{ display: 'flex', borderBottom: '1.5px solid var(--gl-border)' }}>
     {tabs.map(tb => {
       const on = tb.id === active;
       return <button key={tb.id} role="tab" aria-selected={on} onClick={() => onChange(tb.id)} style={{
-        flex: 1, minHeight: 40, border: 'none', cursor: 'pointer',
-        borderRadius: 'var(--gl-radius-md)',
-        background: on ? 'color-mix(in srgb, var(--gl-blue-500) 16%, transparent)' : 'transparent',
-        color: on ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', fontFamily: fontFor(lang),
-        fontWeight: on ? 700 : 500, fontSize: 13.5, transition: 'all var(--gl-dur-base) var(--gl-ease-standard)',
+        flex: 1, minHeight: 46, border: 'none', cursor: 'pointer', padding: '0 4px',
+        background: on ? 'color-mix(in srgb, var(--gl-blue-500) 6%, transparent)' : 'transparent',
+        color: on ? 'var(--gl-fg-1)' : 'var(--gl-fg-3)',
+        fontFamily: fontFor(lang), fontWeight: on ? 700 : 500, fontSize: 13.5,
+        borderBottom: `2.5px solid ${on ? 'var(--gl-blue-500)' : 'transparent'}`,
+        marginBottom: '-1.5px',
+        borderRadius: on ? 'var(--gl-radius-sm) var(--gl-radius-sm) 0 0' : 0,
+        transition: 'all var(--gl-dur-base) var(--gl-ease-standard)',
       }}>{pick(tb.label, lang)}</button>;
     })}
   </div>;
