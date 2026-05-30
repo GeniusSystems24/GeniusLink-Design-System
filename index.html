@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>GeniusLink Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="colors_and_type.css" />
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 50% 0%, #15171E 0%, rgba(17,19,24,0) 54%),
+      var(--gl-bg);
+    color: var(--gl-fg-1);
+    font-family: var(--gl-font-arabic);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .launcher {
+    width: min(1120px, calc(100% - 40px));
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 64px 0;
+    display: grid;
+    align-content: center;
+    gap: 32px;
+  }
+
+  .header {
+    display: grid;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    color: var(--gl-blue-500);
+    font-family: var(--gl-font-body);
+    font-size: var(--gl-text-eyebrow-size);
+    font-weight: 800;
+    letter-spacing: var(--gl-text-eyebrow-tracking-loose);
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    color: var(--gl-fg-1);
+    font-family: var(--gl-font-display);
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  .subtitle {
+    max-width: 680px;
+    margin: 0 auto;
+    color: var(--gl-fg-2);
+    font-size: var(--gl-text-lg);
+    line-height: 1.8;
+  }
+
+  .options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .option-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 320px;
+    padding: 28px;
+    border: 1px solid var(--gl-border);
+    border-radius: var(--gl-radius-lg);
+    background: linear-gradient(180deg, rgba(41,45,56,0.62), rgba(30,32,37,0.95));
+    box-shadow: var(--gl-shadow);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 28px;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  }
+
+  .option-card::before {
+    content: "";
+    position: absolute;
+    inset-block: 28px;
+    inset-inline-start: 0;
+    width: 4px;
+    border-radius: 0 var(--gl-radius-sm) var(--gl-radius-sm) 0;
+    background: var(--gl-blue-500);
+  }
+
+  .option-card:hover,
+  .option-card:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--gl-blue-500);
+    background: linear-gradient(180deg, rgba(47,53,64,0.9), rgba(30,32,37,1));
+    outline: none;
+  }
+
+  .card-copy {
+    display: grid;
+    gap: 10px;
+  }
+
+  .card-label {
+    color: var(--gl-fg-3);
+    font-family: var(--gl-font-body);
+    font-size: var(--gl-text-eyebrow-size);
+    font-weight: 800;
+    letter-spacing: var(--gl-text-eyebrow-tracking);
+    text-transform: uppercase;
+  }
+
+  .card-title {
+    margin: 0;
+    color: var(--gl-fg-1);
+    font-family: var(--gl-font-display);
+    font-size: var(--gl-text-3xl);
+    line-height: 1.3;
+  }
+
+  .card-text {
+    margin: 0;
+    color: var(--gl-fg-2);
+    font-size: var(--gl-text-md);
+    line-height: 1.8;
+  }
+
+  .preview {
+    direction: ltr;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 122px;
+  }
+
+  .desktop-frame {
+    width: min(100%, 320px);
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--gl-border-strong);
+    border-radius: var(--gl-radius-md);
+    background: var(--gl-dark-card);
+    padding: 12px;
+    box-shadow: 0 18px 42px -22px rgba(0,0,0,0.8);
+  }
+
+  .desktop-top {
+    height: 12px;
+    display: flex;
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+
+  .desktop-top span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gl-border-strong);
+  }
+
+  .desktop-grid {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 10px;
+    height: calc(100% - 24px);
+  }
+
+  .desktop-nav,
+  .desktop-content,
+  .phone-screen {
+    border-radius: var(--gl-radius-sm);
+    background: var(--gl-dark-input);
+  }
+
+  .desktop-nav {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .desktop-nav i,
+  .desktop-content i,
+  .phone-screen i {
+    display: block;
+    height: 6px;
+    border-radius: var(--gl-radius-pill);
+    background: var(--gl-fg-3);
+    opacity: 0.7;
+  }
+
+  .desktop-nav i:first-child,
+  .phone-screen i:first-child {
+    background: var(--gl-blue-500);
+    opacity: 1;
+  }
+
+  .desktop-content {
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: start;
+    gap: 10px;
+  }
+
+  .desktop-content i:first-child {
+    grid-column: 1 / -1;
+    height: 32px;
+    background: var(--gl-dark-card-2);
+    opacity: 1;
+  }
+
+  .phone-frame {
+    width: 118px;
+    height: 220px;
+    padding: 10px 8px;
+    border: 1px solid var(--gl-blue-500);
+    border-radius: 22px;
+    background: #0B0C10;
+    box-shadow: 0 18px 42px -22px rgba(74,124,255,0.95);
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    padding: 18px 12px;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+
+  .phone-screen i:nth-child(2) {
+    height: 42px;
+    background: var(--gl-dark-card-2);
+    opacity: 1;
+  }
+
+  .action {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid rgba(74,124,255,0.5);
+    border-radius: var(--gl-radius-sm);
+    background: rgba(74,124,255,0.12);
+    color: var(--gl-blue-50);
+    font-family: var(--gl-font-body);
+    font-size: var(--gl-text-sm);
+    font-weight: 800;
+  }
+
+  .action span {
+    transform: translateY(-1px);
+  }
+
+  .footer {
+    color: var(--gl-fg-3);
+    font-family: var(--gl-font-body);
+    font-size: var(--gl-text-sm);
+    text-align: center;
+  }
+
+  @media (max-width: 760px) {
+    .launcher {
+      width: min(100% - 28px, 520px);
+      padding: 32px 0;
+    }
+
+    .options {
+      grid-template-columns: 1fr;
+    }
+
+    .option-card {
+      min-height: 280px;
+      padding: 24px;
+    }
+  }
+</style>
+</head>
+<body data-theme="">
+  <main class="launcher">
+    <header class="header">
+      <div class="eyebrow">GeniusLink Design System</div>
+      <h1>اختر واجهة العرض</h1>
+      <p class="subtitle">
+        نقطة اقلاع سريعة للانتقال إلى نسخة سطح المكتب أو نسخة الهاتف من واجهات GeniusLink.
+      </p>
+    </header>
+
+    <section class="options" aria-label="خيارات العرض">
+      <a class="option-card" href="ui_kits/genius_link/index.html">
+        <div class="card-copy">
+          <div class="card-label">Desktop UI Kit</div>
+          <h2 class="card-title">واجهة سطح المكتب</h2>
+          <p class="card-text">افتح نسخة الويب الكاملة مع الشاشات والجداول ولوحات التحكم.</p>
+        </div>
+        <div class="preview" aria-hidden="true">
+          <div class="desktop-frame">
+            <div class="desktop-top"><span></span><span></span><span></span></div>
+            <div class="desktop-grid">
+              <div class="desktop-nav"><i></i><i></i><i></i><i></i></div>
+              <div class="desktop-content"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="action">فتح الواجهة <span>←</span></div>
+      </a>
+
+      <a class="option-card" href="ui_kits/genius_link/mobile.html">
+        <div class="card-copy">
+          <div class="card-label">Mobile UI Kit</div>
+          <h2 class="card-title">واجهة الهاتف</h2>
+          <p class="card-text">افتح نموذج الهاتف داخل إطار iOS لمراجعة تجربة الشاشات الصغيرة.</p>
+        </div>
+        <div class="preview" aria-hidden="true">
+          <div class="phone-frame">
+            <div class="phone-screen"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <div class="action">فتح الواجهة <span>←</span></div>
+      </a>
+    </section>
+
+    <footer class="footer">ui_kits/genius_link</footer>
+  </main>
+</body>
+</html>
