@@ -4,7 +4,7 @@ const { useState, useRef, useEffect, useCallback } = React;
 const W = window;
 const { GLIcon, DSPill, IOSDevice, useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakToggle } = W;
 const M = W.GLMD;
-const { Sk, SecHead, DomainTabs, PeriodSeg, MetricCard, QuickActions, OpRow, OpRowSkeleton, AttentionItem, pick, fontFor, TONE } = M;
+const { Sk, SecHead, DomainTabs, PeriodSeg, MetricCard, ViewStyleMenu, SummaryChart, QuickActions, QuickActionsSheet, OpRow, OpRowSkeleton, AttentionItem, pick, fontFor, TONE } = M;
 const STR = W.GL_STR, DATA = W.GL_DATA, CURRENCIES = W.GL_CURRENCIES;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -41,11 +41,13 @@ function App({ t, setTweak }) {
   const [tab, setTab] = useState('accounting');
   const [cur, setCur] = useState('SAR');
   const [period, setPeriod] = useState('week');
+  const [summaryView, setSummaryView] = useState('cards');
   const [curOpen, setCurOpen] = useState(false);
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [tabLoading, setTabLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const [updated, setUpdated] = useState(0);
+  const [, setUpdated] = useState(0);
   const loaded = useRef(new Set(['accounting']));
   const scrollRef = useRef(null);
   const toastTimer = useRef(null);
@@ -68,6 +70,7 @@ function App({ t, setTweak }) {
 
   const switchTab = (id) => {
     setTab(id);
+    setActionsSheetOpen(false);
     if (!loaded.current.has(id)) {
       setTabLoading(true);
       setTimeout(() => { loaded.current.add(id); setTabLoading(false); }, 620);
@@ -147,19 +150,25 @@ function App({ t, setTweak }) {
           {/* domain tabs */}
           <DomainTabs tabs={DATA.tabs} active={tab} onChange={switchTab} lang={lang} />
 
-          {/* compare period */}
-          <div style={{ display: 'flex', justifyContent: dir === 'rtl' ? 'flex-start' : 'flex-end', marginTop: 14 }}>
+          {/* summary controls */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            <ViewStyleMenu value={summaryView} onChange={setSummaryView} str={STR} lang={lang} />
             <PeriodSeg value={period} onChange={setPeriod} str={STR} lang={lang} />
           </div>
 
           {/* summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-            {cfg.cards.map(c => <MetricCard key={c.id} card={c} cur={cur} lang={lang} period={period} loading={busy} />)}
-          </div>
+          {summaryView === 'cards'
+            ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+              {cfg.cards.map(c => <MetricCard key={c.id} card={c} cur={cur} lang={lang} period={period} loading={busy} />)}
+            </div>
+            : <div style={{ marginTop: 12 }}>
+              <SummaryChart cards={cfg.cards} cur={cur} lang={lang} tab={tab} loading={busy} />
+            </div>}
 
           {/* quick actions */}
           <div style={{ marginTop: 24 }}>
-            <SecHead title={L(STR.quickActions)} lang={lang} marker="blue" />
+            <SecHead title={L(STR.quickActions)} lang={lang} marker="blue"
+              trailing={cfg.actions.length > 4 && <button className="gl-press" onClick={() => setActionsSheetOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gl-blue-500)', fontFamily: fontFor(lang), fontSize: 12.5, fontWeight: 700, padding: 4 }}>{L(STR.viewAll)}<GLIcon name={dir === 'rtl' ? 'back' : 'chevR'} size={14} /></button>} />
             <QuickActions actions={cfg.actions} lang={lang} onTap={(a) => showToast((lang === 'ar' ? 'فتح ' : 'Opening ') + pick(a.label, lang))} />
           </div>
 
@@ -189,6 +198,8 @@ function App({ t, setTweak }) {
       {toast && <div style={{ position: 'absolute', bottom: 92, left: '50%', transform: 'translateX(-50%)', zIndex: 70, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: 'var(--gl-fg-1)', color: 'var(--gl-bg)', borderRadius: 999, boxShadow: 'var(--gl-shadow-pop)', fontFamily: fontFor(lang), fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', animation: 'gltoast var(--gl-dur-moderate) var(--gl-ease-out)' }}>
         <GLIcon name="check" size={15} />{toast}
       </div>}
+
+      <QuickActionsSheet open={actionsSheetOpen} actions={cfg.actions} lang={lang} str={STR} onClose={() => setActionsSheetOpen(false)} onTap={(a) => showToast((lang === 'ar' ? 'فتح ' : 'Opening ') + pick(a.label, lang))} />
 
       {/* ── bottom nav ── */}
       <nav style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 25, display: 'flex', paddingBottom: 22, paddingTop: 8, background: 'color-mix(in srgb, var(--gl-bg) 92%, transparent)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderTop: '1px solid var(--gl-border)' }}>
