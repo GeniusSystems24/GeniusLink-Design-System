@@ -13,7 +13,10 @@
   @keyframes glsh { 100% { transform: translateX(100%); } }
   @keyframes dsspin { to { transform: rotate(360deg); } }
   @keyframes gltoast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
-  @keyframes glsheet { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes glslideup { from { transform: translateY(14px); } to { transform: translateY(0); } }
+  @keyframes glslidedown { from { transform: translateY(0); } to { transform: translateY(14px); } }
+  @keyframes gldrawerL { from { transform: translateX(-26px); } to { transform: translateX(0); } }
+  @keyframes gldrawerR { from { transform: translateX(26px); } to { transform: translateX(0); } }
   .gl-press { transition: transform 90ms var(--gl-ease-standard), opacity 90ms; }
   .gl-press:active { transform: scale(0.97); opacity: 0.85; }
 </style>
@@ -36,7 +39,6 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <script type="text/babel" src="design_system/ds-kit.jsx"></script>
-<script type="text/babel" src="ios-frame.jsx"></script>
 <script type="text/babel" src="tweaks-panel.jsx"></script>
 <script type="text/babel" src="mobile-dashboard/data.jsx"></script>
 <script type="text/babel" src="mobile-dashboard/components.jsx"></script>

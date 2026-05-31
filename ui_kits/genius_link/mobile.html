@@ -6,19 +6,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="../../colors_and_type.css" />
 <style>
-  html, body { margin: 0; padding: 0; min-height: 100vh; }
+  html, body { margin: 0; padding: 0; height: 100%; }
   body {
     background: #0B0C10;
     font-family: var(--gl-font-body);
-    display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 40px 20px; box-sizing: border-box;
-    background-image: radial-gradient(circle at 50% 0%, #15171E 0%, #0B0C10 60%);
   }
-  #root { display: flex; gap: 48px; align-items: center; justify-content: center; flex-wrap: wrap; }
-  #scaler { transform-origin: center center; }
-  /* hide the iOS content scrollbar so it doesn't break the bezel */
-  #scaler ::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
-  #scaler * { scrollbar-width: none; -ms-overflow-style: none; }
+  #root { height: 100%; }
+  /* hide content scrollbar */
+  #device ::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
+  #device, #device * { scrollbar-width: none; -ms-overflow-style: none; }
 </style>
 <template id="__bundler_thumbnail">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -36,7 +32,6 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<script type="text/babel" src="ios-frame.jsx"></script>
 <script type="text/babel" src="Mobile.jsx"></script>
 <script type="text/babel" src="MobileUI.jsx"></script>
 <script type="text/babel" src="MobileLogin.jsx"></script>
@@ -61,26 +56,14 @@
 <script type="text/babel">
   function MobileDemo() {
     return (
-      <div id="scaler">
-        <IOSDevice dark>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', background: '#0B0C10' }}>
+        <div id="device" style={{ position: 'relative', width: '100%', maxWidth: 430, height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch', background: '#111318', boxShadow: '0 0 0 1px rgba(255,255,255,0.06)' }}>
           <window.MobileApp />
-        </IOSDevice>
+        </div>
       </div>
     );
   }
   ReactDOM.createRoot(document.getElementById('root')).render(<MobileDemo />);
-
-  // Scale the phone to fit the viewport height
-  function fit() {
-    const s = document.getElementById('scaler');
-    if (!s) return;
-    const k = Math.min(1, (window.innerHeight - 48) / 874);
-    s.style.transform = `scale(${k})`;
-  }
-  window.addEventListener('resize', fit);
-  const obs = new MutationObserver(fit);
-  obs.observe(document.getElementById('root'), { childList: true, subtree: true });
-  setTimeout(fit, 300);
 </script>
 </body>
 </html>

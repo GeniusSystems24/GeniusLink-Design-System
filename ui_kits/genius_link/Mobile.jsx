@@ -114,7 +114,7 @@ function MBtn({ children, variant = 'primary', icon, onClick, full }) {
 /* ───────── shell ───────── */
 function AppBar({ title, ar, onBack, action }) {
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgba(17,19,24,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: `1px solid ${C.border}`, padding: '52px 16px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgba(17,19,24,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: `1px solid ${C.border}`, padding: 'calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
       {onBack && <button onClick={onBack} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', display: 'flex', padding: 0 }}><MIcon name="back" size={22} /></button>}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: C.display, fontWeight: 700, fontSize: 19, letterSpacing: '-0.02em', color: C.fg1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
