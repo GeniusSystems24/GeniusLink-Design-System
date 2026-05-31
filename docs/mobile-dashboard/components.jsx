@@ -161,9 +161,9 @@ function ActionSheetBody({ actions, lang, onTap }) {
 }
 
 /* ── view-style popup button (Cards / Charts) ── */
-function ViewPopup({ value, onChange, lang, str }) {
+function ViewPopup({ value, onChange, lang, str, options }) {
   const [open, setOpen] = useS(false);
-  const opts = [['cards', str.cardsView, 'grid'], ['chart', str.chartView, 'poll']];
+  const opts = options || [['cards', str.cardsView, 'grid'], ['chart', str.chartView, 'poll']];
   const cur = opts.find(o => o[0] === value);
   return <div style={{ position: 'relative' }}>
     <button onClick={() => setOpen(v => !v)} aria-haspopup="listbox" aria-label={pick(cur[1], lang)} className="gl-press" style={{ display: 'flex', alignItems: 'center', gap: 5, height: 34, padding: '0 10px', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', cursor: 'pointer' }}>
@@ -255,7 +255,7 @@ function SideDrawer({ open, onClose, lang, dir, str, workspace, onTap, prefs, on
       </div>
       {/* nav items */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px' }}>
-        {items.map(([id, lbl, ic]) => <button key={id} onClick={() => onTap(pick(lbl, lang))} className="gl-press" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px', minHeight: 48, background: 'none', border: 'none', borderRadius: 'var(--gl-radius-md)', cursor: 'pointer', textAlign: 'start', color: 'var(--gl-fg-1)' }}>
+        {items.map(([id, lbl, ic]) => <button key={id} onClick={() => onTap(pick(lbl, lang), id)} className="gl-press" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px', minHeight: 48, background: 'none', border: 'none', borderRadius: 'var(--gl-radius-md)', cursor: 'pointer', textAlign: 'start', color: 'var(--gl-fg-1)' }}>
           <span style={{ color: 'var(--gl-fg-2)', display: 'flex' }}><GLIcon name={ic} size={19} /></span>
           <span style={{ flex: 1, fontFamily: fontFor(lang), fontSize: 14.5, fontWeight: 600 }}>{pick(lbl, lang)}</span>
           <span style={{ color: 'var(--gl-fg-4)', display: 'flex' }}><GLIcon name={dir === 'rtl' ? 'back' : 'chevR'} size={16} /></span>
@@ -271,7 +271,7 @@ function SideDrawer({ open, onClose, lang, dir, str, workspace, onTap, prefs, on
       </div>
       {/* sign out */}
       <div style={{ padding: '12px 10px calc(env(safe-area-inset-bottom, 0px) + 14px)', borderTop: '1px solid var(--gl-border)' }}>
-        <button onClick={() => onTap(pick(str.signOut, lang))} className="gl-press" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px', minHeight: 48, background: 'none', border: 'none', borderRadius: 'var(--gl-radius-md)', cursor: 'pointer', textAlign: 'start', color: 'var(--gl-danger-500)' }}>
+        <button onClick={() => onTap(pick(str.signOut, lang), 'signout')} className="gl-press" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px', minHeight: 48, background: 'none', border: 'none', borderRadius: 'var(--gl-radius-md)', cursor: 'pointer', textAlign: 'start', color: 'var(--gl-danger-500)' }}>
           <span style={{ display: 'flex' }}><GLIcon name="ban" size={19} /></span>
           <span style={{ flex: 1, fontFamily: fontFor(lang), fontSize: 14.5, fontWeight: 600 }}>{pick(str.signOut, lang)}</span>
         </button>
@@ -488,4 +488,40 @@ function SearchRow({ op, domain, cur, lang, last }) {
   </button>;
 }
 
-Object.assign(window, { GLMD: { Sk, SecHead, DomainTabs, PeriodSeg, MetricCard, QuickActions, OpRow, OpRowSkeleton, AttentionItem, cardBox, pick, fontFor, MARK, TONE, BottomSheet, ActionSheetBody, ViewPopup, CurrencyPopup, MenuGlyph, SideDrawer, ChartView, SearchOverlay } });
+/* ── cash-flow bar chart (revived from the original mobile.html dashboard) ── */
+function CFLegend({ color, label, lang }) {
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--gl-fg-3)', fontWeight: 600, fontFamily: fontFor(lang) }}>
+    <span style={{ width: 9, height: 9, borderRadius: 2, background: color }} />{label}
+  </span>;
+}
+function CashFlowChart({ data, lang, dir, loading, str }) {
+  if (loading) return <div style={{ ...cardBox(), padding: 16 }}><Sk w="42%" h={11} /><Sk w="100%" h={158} mt={16} r={10} /></div>;
+  const months = data.months;
+  const maxVal = Math.max(...months.flatMap(d => [d.in, d.out])) || 1;
+  const inC = MARK.blue, outC = MARK.orange;
+  return <div style={{ ...cardBox(), padding: '16px 14px 12px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--gl-font-body)', fontWeight: 700, fontSize: 15, color: 'var(--gl-fg-1)' }}>{pick(str.cashFlowTitle, lang)}</div>
+        <div style={{ fontFamily: fontFor(lang), fontSize: 11.5, color: 'var(--gl-fg-3)', marginTop: 2 }}>{pick(str.cashFlowSub, lang)}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
+        <CFLegend color={inC} label={pick(data.legendIn, lang)} lang={lang} />
+        <CFLegend color={outC} label={pick(data.legendOut, lang)} lang={lang} />
+      </div>
+    </div>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 158, paddingTop: 4, direction: dir === 'rtl' ? 'rtl' : 'ltr' }}>
+      {months.map((d, i) => (
+        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%' }}>
+          <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
+            <div style={{ width: '42%', height: `${(d.in / maxVal) * 100}%`, background: inC, borderRadius: '3px 3px 0 0', transition: 'height .5s var(--gl-ease-out)' }} />
+            <div style={{ width: '42%', height: `${(d.out / maxVal) * 100}%`, background: outC, borderRadius: '3px 3px 0 0', transition: 'height .5s var(--gl-ease-out)' }} />
+          </div>
+          <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 8.5, color: 'var(--gl-fg-3)' }}>{pick(d.m, lang)}</span>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
+Object.assign(window, { GLMD: { Sk, SecHead, DomainTabs, PeriodSeg, MetricCard, QuickActions, OpRow, OpRowSkeleton, AttentionItem, cardBox, pick, fontFor, MARK, TONE, BottomSheet, ActionSheetBody, ViewPopup, CurrencyPopup, MenuGlyph, SideDrawer, ChartView, CashFlowChart, SearchOverlay } });

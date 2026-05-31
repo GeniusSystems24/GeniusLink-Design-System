@@ -171,12 +171,14 @@ function MobileApp() {
   };
   const cur = tabs[tab];
   const Body = tab === 'more' ? MMore : S[tab];
+  const changeTab = (t) => { setTab(t); setSub(null); };
+  const isDashboard = tab === 'dashboard'; // dashboard renders its own rich app bar
 
   return (
     <div style={{ minHeight: '100%', background: MAppC.bg, display: 'flex', flexDirection: 'column' }}>
-      <MAppBar title={cur.title} action={cur.action} />
-      <div style={{ flex: 1 }}><Body go={go} /></div>
-      <MAppTabBar active={tab} onChange={(t) => { setTab(t); setSub(null); }} />
+      {!isDashboard && <MAppBar title={cur.title} action={cur.action} />}
+      <div style={{ flex: 1 }}><Body go={go} setTab={changeTab} /></div>
+      <MAppTabBar active={tab} onChange={changeTab} />
     </div>
   );
 }

@@ -15,6 +15,22 @@
   /* hide content scrollbar */
   #device ::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
   #device, #device * { scrollbar-width: none; -ms-overflow-style: none; }
+
+  /* motion tokens used by the merged dashboard components (from design_system/tokens.css) */
+  :root {
+    --gl-dur-base: 150ms;
+    --gl-dur-moderate: 200ms;
+    --gl-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --gl-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  }
+  @keyframes glsh { 100% { transform: translateX(100%); } }
+  @keyframes dsspin { to { transform: rotate(360deg); } }
+  @keyframes glslideup { from { transform: translateY(14px); } to { transform: translateY(0); } }
+  @keyframes gldrawerL { from { transform: translateX(-26px); } to { transform: translateX(0); } }
+  @keyframes gldrawerR { from { transform: translateX(26px); } to { transform: translateX(0); } }
+  @keyframes gltoast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .gl-press { transition: transform 90ms var(--gl-ease-standard), opacity 90ms; }
+  .gl-press:active { transform: scale(0.97); opacity: 0.85; }
 </style>
 <template id="__bundler_thumbnail">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -31,6 +47,11 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- shared design-system kit + rich dashboard data/components (merged from Mobile Dashboard.html) -->
+<script type="text/babel" src="../../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="../../mobile-dashboard/data.jsx"></script>
+<script type="text/babel" src="../../mobile-dashboard/components.jsx"></script>
 
 <script type="text/babel" src="Mobile.jsx"></script>
 <script type="text/babel" src="MobileUI.jsx"></script>
@@ -54,6 +75,7 @@
 <script type="text/babel" src="MobileApp.jsx"></script>
 
 <script type="text/babel">
+  window.W = window; // global alias the dashboard components resolve against
   function MobileDemo() {
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', background: '#0B0C10' }}>

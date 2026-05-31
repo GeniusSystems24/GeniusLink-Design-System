@@ -175,6 +175,9 @@ const GL_STR = {
   view: { en: 'View', ar: 'العرض' },
   cardsView: { en: 'Cards', ar: 'بطاقات' },
   chartView: { en: 'Charts', ar: 'مخططات' },
+  cashflowView: { en: 'Cash Flow', ar: 'التدفق النقدي' },
+  cashFlowTitle: { en: 'Cash Flow', ar: 'التدفق النقدي' },
+  cashFlowSub: { en: 'Inflow vs outflow · 12 months', ar: 'الوارد مقابل الصادر · ١٢ شهرًا' },
   allActions: { en: 'All Actions', ar: 'كل الإجراءات' },
   grpCreate: { en: 'Create new', ar: 'إنشاء جديد' },
   grpManage: { en: 'Manage', ar: 'إدارة' },
@@ -241,6 +244,23 @@ const GL_AXIS = {
   month: { en: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'], ar: ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨'] },
 };
 window.GL_AXIS = GL_AXIS;
+
+/* ── 12-month cash-flow series (inflow vs outflow, in thousands) ──
+   Revived from the original mobile.html dashboard; drives the bar-chart view. */
+const GL_CASHFLOW = {
+  unit: { en: 'thousands', ar: 'بالآلاف' },
+  legendIn: { en: 'Inflow', ar: 'الوارد' },
+  legendOut: { en: 'Outflow', ar: 'الصادر' },
+  months: [
+    { m: { en: 'Jan', ar: 'ينا' }, in: 62, out: 48 }, { m: { en: 'Feb', ar: 'فبر' }, in: 71, out: 52 },
+    { m: { en: 'Mar', ar: 'مار' }, in: 58, out: 61 }, { m: { en: 'Apr', ar: 'أبر' }, in: 80, out: 55 },
+    { m: { en: 'May', ar: 'ماي' }, in: 74, out: 58 }, { m: { en: 'Jun', ar: 'يون' }, in: 92, out: 63 },
+    { m: { en: 'Jul', ar: 'يول' }, in: 88, out: 70 }, { m: { en: 'Aug', ar: 'أغس' }, in: 79, out: 66 },
+    { m: { en: 'Sep', ar: 'سبت' }, in: 96, out: 72 }, { m: { en: 'Oct', ar: 'أكت' }, in: 104, out: 78 },
+    { m: { en: 'Nov', ar: 'نوف' }, in: 98, out: 81 }, { m: { en: 'Dec', ar: 'ديس' }, in: 112, out: 74 },
+  ],
+};
+window.GL_CASHFLOW = GL_CASHFLOW;
 
 /* ── formatters (locale + currency aware) ── */
 function glMoney(value, currency, lang, opts = {}) {
