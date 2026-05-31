@@ -85,7 +85,7 @@ function App({ t, setTweak }) {
   return (
     <div dir={dir} style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', background: 'var(--gl-bg)', fontFamily: fontFor(lang) }}>
       {/* ── sticky app bar ── */}
-      <header style={{ position: 'relative', zIndex: 30, paddingTop: 56, paddingInline: 18, paddingBottom: 12, background: 'color-mix(in srgb, var(--gl-bg) 90%, transparent)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--gl-border)' }}>
+      <header style={{ position: 'relative', zIndex: 30, paddingTop: 14, paddingInline: 18, paddingBottom: 12, background: 'color-mix(in srgb, var(--gl-bg) 90%, transparent)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--gl-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button className="gl-press" onClick={() => showToast(lang === 'ar' ? 'تبديل المنشأة' : 'Switch organization')} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1, minWidth: 0 }}>
             <span style={{ width: 38, height: 38, borderRadius: 10, background: 'color-mix(in srgb, var(--gl-blue-500) 16%, transparent)', color: 'var(--gl-blue-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><GLIcon name="grid" size={19} /></span>
@@ -226,10 +226,10 @@ function App({ t, setTweak }) {
 
 function Mounted() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.theme === 'dark' ? '#08090c' : '#e7e8ee', padding: 20 }}>
-    <IOSDevice dark={t.theme === 'dark'}>
+  return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.theme === 'dark' ? '#08090c' : '#e7e8ee', overflow: 'hidden' }}>
+    <div style={{ width: 402, height: '100vh', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
       <App t={t} setTweak={setTweak} />
-    </IOSDevice>
+    </div>
   </div>;
 }
 
