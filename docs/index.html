@@ -1149,24 +1149,52 @@
 const viewLanding = document.getElementById('view-landing');
 const viewBrowser = document.getElementById('view-browser');
 
-function openBrowser() {
-  viewLanding.classList.add('is-hidden');
-  viewBrowser.classList.add('is-visible');
-  if (!browserInitialised) initBrowser();
+/* ════════════════════════════════════════════════════════
+   Router  —  hash schema:
+     #            → landing
+     #ds          → browser, no selection
+     #ds/COLOR-ID → browser, component selected
+════════════════════════════════════════════════════════ */
+
+function navigate(hash, pushState = true) {
+  if (pushState) history.pushState(null, '', hash || '#');
+
+  if (!hash || hash === '#' || hash === '') {
+    // Landing
+    viewBrowser.classList.remove('is-visible');
+    viewLanding.classList.remove('is-hidden');
+  } else {
+    // Browser view
+    viewLanding.classList.add('is-hidden');
+    viewBrowser.classList.add('is-visible');
+    if (!browserInitialised) initBrowser();
+
+    const id = hash.replace(/^#ds\/?/, '');
+    if (id && id !== 'ds') {
+      selectItem(id, true);
+    }
+  }
+}
+
+function openBrowser(id) {
+  const hash = id ? `#ds/${id}` : '#ds';
+  navigate(hash);
 }
 
 function openLanding() {
-  viewBrowser.classList.remove('is-visible');
-  viewLanding.classList.remove('is-hidden');
+  navigate('#');
 }
 
 // DS card click / keyboard
 const cardDs = document.getElementById('card-ds');
-cardDs.addEventListener('click', openBrowser);
+cardDs.addEventListener('click', () => openBrowser());
 cardDs.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBrowser(); } });
 
 // Back button
 document.getElementById('js-back').addEventListener('click', openLanding);
+
+// Browser back / forward
+window.addEventListener('popstate', () => navigate(location.hash, false));
 
 
 /* ════════════════════════════════════════════════════════
@@ -1340,10 +1368,13 @@ function findItem(id) {
   return null;
 }
 
-function selectItem(id) {
+function selectItem(id, skipHistory = false) {
   const it = findItem(id);
   if (!it) return;
   activeId = id;
+
+  if (!skipHistory) history.pushState(null, '', `#ds/${id}`);
+
   elEmpty.style.display = 'none';
   elCard.classList.add('is-visible');
   elTitle.textContent    = it.label;
@@ -1418,9 +1449,20 @@ function initBrowser() {
   browserInitialised = true;
   renderSidebar();
   renderProgress();
-  const first = GROUPS[0]?.items[0];
-  if (first) selectItem(first.id);
+
+  // Honour the hash already in the URL; fall back to first item
+  const hashId = location.hash.replace(/^#ds\/?/, '');
+  const target  = (hashId && hashId !== 'ds' && findItem(hashId))
+    ? hashId
+    : GROUPS[0]?.items[0]?.id;
+
+  if (target) selectItem(target, !!hashId);
 }
+
+/* ════════════════════════════════════════════════════════
+   Boot — read initial URL
+════════════════════════════════════════════════════════ */
+navigate(location.hash, false);
 </script>
 </body>
 </html>
