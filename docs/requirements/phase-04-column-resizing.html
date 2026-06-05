@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 04 — Column resizing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .vp::-webkit-scrollbar{height:10px;width:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .rz-handle{position:absolute;top:0;inset-inline-end:-5px;width:11px;height:100%;cursor:col-resize;z-index:6;display:flex;align-items:center;justify-content:center;touch-action:none}
+  .rz-handle::after{content:'';width:2px;height:60%;background:var(--gl-border-strong);border-radius:2px;transition:background var(--gl-dur-fast),height var(--gl-dur-fast)}
+  .rz-handle:hover::after,.rz-handle.on::after{background:var(--gl-blue-500);height:100%}
+  .rz-col.resizing{background:color-mix(in srgb,var(--gl-blue-500) 6%,transparent)}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="18" y="26" width="64" height="48" fill="none" stroke="#33353A" stroke-width="3"/><line x1="50" y1="26" x2="50" y2="74" stroke="#4A7CFF" stroke-width="3"/><path d="M40 50h-8M36 46l-4 4 4 4" fill="none" stroke="#4A7CFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M60 50h8M64 46l4 4-4 4" fill="none" stroke="#4A7CFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Kbd, Tag } = window;
+const { useState, useRef, useEffect, useCallback } = React;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const MINW = 64, MAXW = 460;
+
+const COLS0 = [
+  { key: 'code', label: 'Code', w: 88, mono: true },
+  { key: 'en', label: 'Account', w: 210 },
+  { key: 'type', label: 'Type', w: 124 },
+  { key: 'bal', label: 'Balance', w: 150, mono: true, e: true },
+  { key: 'upd', label: 'Updated', w: 130, mono: true },
+  { key: 'st', label: 'Status', w: 120 },
+];
+const ROWS = [
+  { code: '1010', en: 'Petty Cash', type: 'Asset', bal: '4,200.00', upd: '2024-12-01', st: 'Active' },
+  { code: '1020', en: 'Bank · SNB', type: 'Asset', bal: '182,540.00', upd: '2024-12-02', st: 'Active' },
+  { code: '2010', en: 'Accounts Payable', type: 'Liability', bal: '−74,100.00', upd: '2024-12-03', st: 'Open' },
+  { code: '3010', en: 'Share Capital', type: 'Equity', bal: '−500,000.00', upd: '2024-11-30', st: 'Active' },
+  { code: '4010', en: 'Sales Revenue', type: 'Revenue', bal: '−640,200.00', upd: '2024-12-04', st: 'Review' },
+];
+const TYPE_TONE = { Asset: 'var(--gl-blue-500)', Liability: 'var(--gl-warning-500)', Equity: 'var(--gl-success-500)', Revenue: 'var(--gl-success-500)', Expense: 'var(--gl-danger-500)' };
+const ST_TONE = { Active: 'var(--gl-success-500)', Open: 'var(--gl-warning-500)', Review: 'var(--gl-fg-3)' };
+
+function ResizableTable({ rtl, variant }) {
+  const editable = variant === 'editable';
+  const [widths, setWidths] = useState(COLS0.map(c => c.w));
+  const [drag, setDrag] = useState(null);       // index being resized
+  const [sel, setSel] = useState({ r: 0, c: 1 });
+  const dragState = useRef(null);
+
+  const onHandleDown = (ci, e) => {
+    e.preventDefault(); e.stopPropagation();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    dragState.current = { ci, startX: e.clientX, startW: widths[ci], dirSign: rtl ? -1 : 1 };
+    setDrag(ci);
+  };
+  const onHandleMove = (e) => {
+    const d = dragState.current; if (!d) return;
+    const delta = (e.clientX - d.startX) * d.dirSign;     // inline-end handle, mirrored in RTL
+    setWidths(w => w.map((x, i) => i === d.ci ? clamp(d.startW + delta, MINW, MAXW) : x));
+  };
+  const onHandleUp = (e) => { if (dragState.current) { try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {} } dragState.current = null; setDrag(null); };
+  const onHandleDouble = (ci) => setWidths(w => w.map((x, i) => i === ci ? COLS0[i].w : x));
+
+  const GT = widths.map(w => w + 'px').join(' ');
+  const totalW = widths.reduce((a, b) => a + b, 0);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }} dir="ltr">
+        <span style={{ fontSize: 12, color: 'var(--gl-fg-3)' }}>Drag the handle on a header's {rtl ? 'left' : 'right'} edge · double-click it to reset</span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>{COLS0.map((c, i) => <span key={c.key} style={{ color: drag === i ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', marginInlineEnd: 8 }}>{c.label[0]}:{Math.round(widths[i])}</span>)}</span>
+          <DSButton size="sm" variant="secondary" icon="back" onClick={() => setWidths(COLS0.map(c => c.w))}>Reset</DSButton>
+        </div>
+      </div>
+      <div className="vp" dir={rtl ? 'rtl' : 'ltr'} style={{ overflowX: 'auto', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', background: 'var(--gl-surface)', userSelect: drag != null ? 'none' : 'auto' }}>
+        <div style={{ minWidth: totalW }}>
+          {/* header */}
+          <div style={{ display: 'grid', gridTemplateColumns: GT, background: 'var(--gl-bg)' }}>
+            {COLS0.map((c, ci) => (
+              <div key={c.key} className={'rz-col' + (drag === ci ? ' resizing' : '')}
+                style={{ position: 'relative', padding: '10px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: drag === ci ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', borderBottom: '1px solid var(--gl-border-strong)', textAlign: c.e ? 'end' : 'start', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {c.label}
+                <div className={'rz-handle' + (drag === ci ? ' on' : '')} onPointerDown={(e) => onHandleDown(ci, e)} onPointerMove={onHandleMove} onPointerUp={onHandleUp} onDoubleClick={() => onHandleDouble(ci)} title="Drag to resize · double-click to reset" />
+              </div>
+            ))}
+          </div>
+          {/* rows */}
+          {ROWS.map((row, r) => (
+            <div key={r} style={{ display: 'grid', gridTemplateColumns: GT }}>
+              {COLS0.map((c, ci) => {
+                const on = editable && sel.r === r && sel.c === ci;
+                const v = row[c.key];
+                const neg = c.key === 'bal' && String(v).startsWith('−');
+                return (
+                  <div key={c.key} onClick={() => editable && setSel({ r, c: ci })}
+                    style={{ height: 40, padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: c.e ? 'flex-end' : 'flex-start',
+                      borderInlineEnd: '1px solid var(--gl-border)', borderBottom: '1px solid var(--gl-border)',
+                      background: on ? 'color-mix(in srgb, var(--gl-blue-500) 11%, var(--gl-surface))' : 'transparent',
+                      boxShadow: on ? 'inset 0 0 0 2px var(--gl-blue-500)' : 'none', position: on ? 'relative' : 'static', zIndex: on ? 2 : 1,
+                      fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 12.5,
+                      color: neg ? 'var(--gl-danger-500)' : 'var(--gl-fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: editable ? 'cell' : 'default' }}>
+                    {c.key === 'type' ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: TYPE_TONE[v], background: `color-mix(in srgb, ${TYPE_TONE[v]} 16%, transparent)`, whiteSpace: 'nowrap' }}>{v}</span>
+                      : c.key === 'st' ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: ST_TONE[v], background: `color-mix(in srgb, ${ST_TONE[v]} 15%, transparent)`, whiteSpace: 'nowrap' }}>{v}</span>
+                        : <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResizablePanel({ rtl }) {
+  const [variant, setVariant] = useState('readable');
+  return (
+    <Panel title={variant === 'readable' ? 'ReadableTable — resizable columns' : 'EditableTable — resizable columns'}
+      desc="The header carries a drag handle on its inline-end edge. Dragging updates that column's width live; double-click auto-resets it. Min/max are clamped. The same handle and controller op serve both tables."
+      controls={<Segmented value={variant} onChange={setVariant} options={[{ value: 'readable', label: 'Readable' }, { value: 'editable', label: 'Editable' }]} />}>
+      <Stage><ResizableTable rtl={rtl} variant={variant} /></Stage>
+    </Panel>
+  );
+}
+
+const F_CODE = `// Column width moves into controller state so the view rebuilds on drag.
+// editable_table_controller.dart / readable_table_controller.dart
+void resizeColumn(int index, double delta, {double min = 64, double max = 460}) {
+  final w = (_widths[index] + delta).clamp(min, max);
+  if (w == _widths[index]) return;
+  _widths[index] = w;
+  notifyListeners();
+}
+double widthOf(int index) => _widths[index];
+
+// A resize handle parked on each header cell's inline-end edge. The drag delta
+// is mirrored in RTL because the handle then sits on the visual LEFT.
+class _ColumnResizeHandle extends StatelessWidget {
+  final int index;
+  final VoidCallback onReset;
+  const _ColumnResizeHandle({required this.index, required this.onReset});
+
+  @override
+  Widget build(BuildContext context) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final c = TableScope.of<T>(context).controller;
+    return PositionedDirectional(
+      top: 0, bottom: 0, end: -5, width: 11,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onDoubleTap: onReset,
+        onHorizontalDragUpdate: (d) =>
+            c.resizeColumn(index, d.delta.dx * (rtl ? -1 : 1)),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.resizeColumn,
+          child: Center(child: Container(width: 2, color: theme.borderStrong)),
+        ),
+      ),
+    );
+  }
+}
+
+// The header + every body row size their columns from controller.widthOf(i),
+// so a drag reflows the whole table in one frame.`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  const [dir, setDir] = useState('ltr');
+  const rtl = dir === 'rtl';
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="04" title="Column resizing"
+        requirement="Add drag handles to column headers in ReadableTable & EditableTable so users can adjust each column's width, with the table reflowing live."
+        theme={theme} setTheme={setTheme}
+        right={<Segmented value={dir} onChange={setDir} options={[{ value: 'ltr', label: 'LTR' }, { value: 'rtl', label: 'RTL · عربي' }]} ariaLabel="Direction" />} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="Grab a header edge and drag." tone="info">
+            Each header has a thin handle on its trailing edge — hover to see it highlight, drag to resize that column, double-click to reset. Widths clamp between {MINW} and {MAXW}px. Flip to RTL: the handle moves to the visual left and the drag direction mirrors, so it still feels right.
+          </Callout>
+        </div>
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>Column <code>width</code> was a fixed value baked into the column schema — the only way to change it was in code.</>}
+            after={<>Widths live in the controller. A header handle drives <code>resizeColumn(i, delta)</code>; header and rows both size from <code>widthOf(i)</code>, so the grid reflows in a single frame — RTL-correct.</>} />
+        </div>
+
+        <ResizablePanel rtl={rtl} />
+
+        <Panel title="Flutter reference" desc="Width state moves to the controller; a PositionedDirectional handle mirrors automatically, and the drag delta flips under RTL.">
+          <CodeBlock label="resizeColumn + header handle" file="data/editable_table.dart · readable_table.dart" code={F_CODE} defaultOpen />
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-03-generic-row-type.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 03</a>
+          <a href="phase-05-column-reordering.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 05 · Column reordering <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

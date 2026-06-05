@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 07 — Copy rows &amp; cells (TSV)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .vp::-webkit-scrollbar{height:10px;width:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .cell{user-select:none}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="22" y="22" width="40" height="50" rx="4" fill="none" stroke="#33353A" stroke-width="3"/><rect x="34" y="34" width="44" height="50" rx="4" fill="#1B1E26" stroke="#4A7CFF" stroke-width="3"/><line x1="42" y1="46" x2="70" y2="46" stroke="#4A7CFF" stroke-width="3"/><line x1="42" y1="56" x2="70" y2="56" stroke="#4A7CFF" stroke-width="3"/><line x1="42" y1="66" x2="60" y2="66" stroke="#1DB88A" stroke-width="3"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Kbd, Tag } = window;
+const { useState, useRef, useCallback } = React;
+
+const COLS = [
+  { key: 'code', label: 'Code', w: 84, mono: true },
+  { key: 'en', label: 'Account', w: 190 },
+  { key: 'type', label: 'Type', w: 116 },
+  { key: 'bal', label: 'Balance', w: 134, mono: true, e: true },
+  { key: 'st', label: 'Status', w: 110 },
+];
+const ROWS = [
+  { code: '1010', en: 'Petty Cash', type: 'Asset', bal: '4,200.00', st: 'Active' },
+  { code: '1020', en: 'Bank · SNB', type: 'Asset', bal: '182,540.00', st: 'Active' },
+  { code: '2010', en: 'Accounts Payable', type: 'Liability', bal: '−74,100.00', st: 'Open' },
+  { code: '3010', en: 'Share Capital', type: 'Equity', bal: '−500,000.00', st: 'Active' },
+  { code: '4010', en: 'Sales Revenue', type: 'Revenue', bal: '−640,200.00', st: 'Review' },
+  { code: '5210', en: 'Salaries Expense', type: 'Expense', bal: '156,000.00', st: 'Flagged' },
+];
+const TYPE_TONE = { Asset: '#4A7CFF', Liability: '#E0A23B', Equity: '#1DB88A', Revenue: '#1DB88A', Expense: '#EF4444' };
+const ST_TONE = { Active: '#1DB88A', Open: '#E0A23B', Review: '#8C92A4', Flagged: '#EF4444' };
+const san = s => String(s).replace(/\t/g, ' ').replace(/[\r\n]+/g, ' ');
+const key = (r, c) => r * 1000 + c;
+
+function CopyDemo({ mode }) {
+  // mode: 'row' or 'cell'
+  const [selRows, setSelRows] = useState(new Set());
+  const [selCells, setSelCells] = useState(new Set());   // "r:c"
+  const [anchor, setAnchor] = useState(null);
+  const [copied, setCopied] = useState(null);             // {tsv, count, label}
+  const [pasteBox, setPasteBox] = useState('');
+  const wrapRef = useRef(null);
+
+  const clear = () => { setSelRows(new Set()); setSelCells(new Set()); setAnchor(null); };
+
+  const onRowClick = (r, e) => {
+    const next = new Set(selRows);
+    if (e.shiftKey && anchor != null) { const [a, b] = [Math.min(anchor, r), Math.max(anchor, r)]; for (let i = a; i <= b; i++) next.add(i); }
+    else if (e.metaKey || e.ctrlKey) { next.has(r) ? next.delete(r) : next.add(r); setAnchor(r); }
+    else { next.clear(); next.add(r); setAnchor(r); }
+    setSelRows(next);
+  };
+  const onCellClick = (r, c, e) => {
+    const next = new Set(selCells);
+    if (e.shiftKey && anchor) { // rectangle
+      const [ar, ac] = anchor; const [r0, r1] = [Math.min(ar, r), Math.max(ar, r)]; const [c0, c1] = [Math.min(ac, c), Math.max(ac, c)];
+      next.clear(); for (let i = r0; i <= r1; i++) for (let j = c0; j <= c1; j++) next.add(i + ':' + j);
+    } else if (e.metaKey || e.ctrlKey) { const id = r + ':' + c; next.has(id) ? next.delete(id) : next.add(id); setAnchor([r, c]); }
+    else { next.clear(); next.add(r + ':' + c); setAnchor([r, c]); }
+    setSelCells(next);
+  };
+
+  const buildTsv = useCallback(() => {
+    if (mode === 'row') {
+      const rs = [...selRows].sort((a, b) => a - b);
+      if (!rs.length) return null;
+      const tsv = rs.map(r => COLS.map(c => san(ROWS[r][c.key])).join('\t')).join('\n');
+      return { tsv, count: rs.length, label: `${rs.length} row${rs.length > 1 ? 's' : ''} × ${COLS.length} cols` };
+    } else {
+      const cells = [...selCells].map(s => s.split(':').map(Number));
+      if (!cells.length) return null;
+      const rs = cells.map(c => c[0]), cs = cells.map(c => c[1]);
+      const minR = Math.min(...rs), maxR = Math.max(...rs), minC = Math.min(...cs), maxC = Math.max(...cs);
+      const picked = new Set(selCells);
+      const lines = [];
+      for (let r = minR; r <= maxR; r++) { const line = []; for (let c = minC; c <= maxC; c++) line.push(picked.has(r + ':' + c) ? san(ROWS[r][COLS[c].key]) : ''); lines.push(line.join('\t')); }
+      return { tsv: lines.join('\n'), count: cells.length, label: `${cells.length} cell${cells.length > 1 ? 's' : ''} · ${maxR - minR + 1}×${maxC - minC + 1} block` };
+    }
+  }, [mode, selRows, selCells]);
+
+  const doCopy = async () => {
+    const built = buildTsv(); if (!built) return;
+    try { await navigator.clipboard.writeText(built.tsv); } catch (_) { /* sandbox may block; preview still shows */ }
+    setCopied(built);
+  };
+  const onKeyDown = (e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); doCopy(); }
+    if (e.key === 'Escape') clear();
+  };
+
+  const count = mode === 'row' ? selRows.size : selCells.size;
+  const GT = COLS.map(c => c.w + 'px').join(' ');
+  const totalW = COLS.reduce((a, c) => a + c.w, 0);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--gl-fg-3)' }}>
+          {mode === 'row'
+            ? <>Click a row · <Kbd>⇧</Kbd> range · <Kbd>⌘</Kbd>/<Kbd>Ctrl</Kbd> toggle</>
+            : <>Click a cell · <Kbd>⇧</Kbd> rectangle · <Kbd>⌘</Kbd>/<Kbd>Ctrl</Kbd> toggle</>}
+        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: count ? 'var(--gl-blue-500)' : 'var(--gl-fg-4)', fontWeight: 600 }}>{count ? `${count} selected` : 'nothing selected'}</span>
+          <DSButton size="sm" variant="secondary" icon="copy" onClick={doCopy}>Copy <span style={{ opacity: .6, marginInlineStart: 4 }}>⌘C</span></DSButton>
+        </div>
+      </div>
+      <div ref={wrapRef} tabIndex={0} onKeyDown={onKeyDown} className="vp" style={{ overflowX: 'auto', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', background: 'var(--gl-surface)', outline: 'none' }}>
+        <div style={{ minWidth: totalW }}>
+          <div style={{ display: 'grid', gridTemplateColumns: GT, background: 'var(--gl-bg)' }}>
+            {COLS.map(c => <div key={c.key} style={{ padding: '9px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--gl-fg-3)', borderBottom: '1px solid var(--gl-border-strong)', textAlign: c.e ? 'end' : 'start', whiteSpace: 'nowrap' }}>{c.label}</div>)}
+          </div>
+          {ROWS.map((row, r) => {
+            const rowSel = mode === 'row' && selRows.has(r);
+            return (
+              <div key={r} onClick={mode === 'row' ? (e) => onRowClick(r, e) : undefined}
+                style={{ display: 'grid', gridTemplateColumns: GT, cursor: mode === 'row' ? 'pointer' : 'default', background: rowSel ? 'color-mix(in srgb, var(--gl-blue-500) 13%, transparent)' : 'transparent', boxShadow: rowSel ? 'inset 2px 0 0 var(--gl-blue-500)' : 'none' }}>
+                {COLS.map((c, ci) => {
+                  const cellSel = mode === 'cell' && selCells.has(r + ':' + ci);
+                  const v = row[c.key];
+                  const neg = c.key === 'bal' && String(v).startsWith('−');
+                  return (
+                    <div key={c.key} className="cell" onClick={mode === 'cell' ? (e) => onCellClick(r, ci, e) : undefined}
+                      style={{ height: 40, padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: c.e ? 'flex-end' : 'flex-start',
+                        borderInlineEnd: '1px solid var(--gl-border)', borderBottom: '1px solid var(--gl-border)', cursor: mode === 'cell' ? 'cell' : 'inherit',
+                        background: cellSel ? 'color-mix(in srgb, var(--gl-blue-500) 16%, transparent)' : 'transparent',
+                        boxShadow: cellSel ? 'inset 0 0 0 1.5px var(--gl-blue-500)' : 'none', position: cellSel ? 'relative' : 'static', zIndex: cellSel ? 2 : 1,
+                        fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 12.5, color: neg ? 'var(--gl-danger-500)' : 'var(--gl-fg-1)', whiteSpace: 'nowrap' }}>
+                      {c.key === 'type' ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: TYPE_TONE[v], background: `color-mix(in srgb, ${TYPE_TONE[v]} 16%, transparent)` }}>{v}</span>
+                        : c.key === 'st' ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: ST_TONE[v], background: `color-mix(in srgb, ${ST_TONE[v]} 15%, transparent)` }}>{v}</span>
+                          : v}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* clipboard result + paste target */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
+        <div style={{ background: 'var(--gl-bg)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', overflow: 'hidden' }}>
+          <div style={{ padding: '9px 13px', borderBottom: '1px solid var(--gl-border)', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><GLIcon name="copy" size={14} color="var(--gl-success-500)" /><span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--gl-fg-2)' }}>On clipboard (TSV)</span></span>
+            {copied && <Tag tone="green">{copied.label}</Tag>}
+          </div>
+          <pre style={{ margin: 0, padding: '12px 14px', fontFamily: 'var(--gl-font-mono)', fontSize: 11.5, lineHeight: 1.6, color: 'var(--gl-fg-2)', minHeight: 70, whiteSpace: 'pre', overflowX: 'auto' }}>{copied ? copied.tsv.replace(/\t/g, ' → ') : <span style={{ color: 'var(--gl-fg-4)' }}>Select cells/rows, press ⌘C…\n(tabs shown as → here)</span>}</pre>
+        </div>
+        <div style={{ background: 'var(--gl-bg)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', overflow: 'hidden' }}>
+          <div style={{ padding: '9px 13px', borderBottom: '1px solid var(--gl-border)', display: 'flex', alignItems: 'center', gap: 8 }}><GLIcon name="check2" size={14} color="var(--gl-blue-500)" /><span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--gl-fg-2)' }}>Paste here to verify</span></div>
+          <textarea value={pasteBox} onChange={e => setPasteBox(e.target.value)} placeholder="⌘V — pastes as real tab-separated text, ready for Sheets/Excel" style={{ width: '100%', minHeight: 70, border: 'none', outline: 'none', resize: 'vertical', background: 'transparent', color: 'var(--gl-fg-1)', fontFamily: 'var(--gl-font-mono)', fontSize: 11.5, lineHeight: 1.6, padding: '12px 14px' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CopyPanel() {
+  const [mode, setMode] = useState('row');
+  return (
+    <Panel title={mode === 'row' ? 'Row selection → copy' : 'Cell selection → copy'}
+      desc="Build a selection, then ⌘C / the Copy button. The left pane shows exactly what landed on your real clipboard as tab-separated values; paste into the right pane (or a spreadsheet) to confirm. Cell mode copies the bounding rectangle, with un-selected cells inside it left blank so the block keeps its shape."
+      controls={<Segmented value={mode} onChange={setMode} options={[{ value: 'row', label: 'Rows' }, { value: 'cell', label: 'Cells' }]} />}>
+      <Stage><CopyDemo mode={mode} key={mode} /></Stage>
+    </Panel>
+  );
+}
+
+const F_CODE = `// readable_table_controller.dart / editable_table_controller.dart
+// Selection → TSV → OS clipboard. Single & multi, rows & cells, all one path.
+
+/// Whole rows (every column), ascending row order.
+String rowsAsTsv(Iterable<int> rows, {bool includeHeader = false}) { … }
+
+/// A rectangle covering [cells]; cells inside the bounding box but NOT in the
+/// set are emitted as empty fields, so the block keeps its shape on paste.
+String cellsAsTsv(Iterable<CellRef> cells) {
+  final rs = cells.map((c) => c.row), cs = cells.map((c) => c.col);
+  final (minR, maxR, minC, maxC) = bounds(rs, cs);
+  final picked = {for (final c in cells) (c.row, c.col)};
+  final buf = <String>[];
+  for (var r = minR; r <= maxR; r++) {
+    final line = [for (var c = minC; c <= maxC; c++)
+      picked.contains((r, c)) ? _san(cellValue(r, c)) : ''];
+    buf.add(line.join('\\t'));        // tab between columns
+  }
+  return buf.join('\\n');              // newline between rows
+}
+
+Future<int> copyRowsToClipboard(Iterable<int> rows) async {
+  final tsv = rowsAsTsv(rows);
+  if (tsv.isEmpty) return 0;
+  await Clipboard.setData(ClipboardData(text: tsv));   // ← real system clipboard
+  return '\\n'.allMatches(tsv).length + 1;
+}
+
+// Wired to ⌘/Ctrl + C in each table's key handler:
+if (mod && k == LogicalKeyboardKey.keyC) {
+  c.copySelectionToClipboard();
+  return KeyEventResult.handled;
+}
+
+// _san() flattens any tab/newline inside a value to a space so one cell can
+// never spill into neighbouring TSV fields.`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="07" title="Copy rows &amp; cells"
+        requirement="Copy a single row, multiple rows, a single cell or multiple cells in ReadableTable & EditableTable. Selection-based copy, formatted as tab-separated values for pasting into spreadsheets."
+        theme={theme} setTheme={setTheme} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="Select anything, ⌘C, paste into a spreadsheet." tone="info">
+            Both row and cell selections serialize to tab-separated values — tabs between columns, newlines between rows — which is exactly what Sheets, Excel and Numbers expect. Try it: select, press <Kbd>⌘C</Kbd>, then paste into the verification box (or a real spreadsheet). The copy actually hits your system clipboard.
+          </Callout>
+        </div>
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>Copy was a single internal cell buffer — one cell at a time, kept in-app, never reaching the OS clipboard. No way to grab a row, a block, or a whole selection for a spreadsheet.</>}
+            after={<>Selection serializes to TSV and goes to the real system clipboard via <code>Clipboard.setData</code>. Rows copy every column; cells copy their bounding rectangle (gaps blank). Wired to <Kbd>⌘C</Kbd> in both tables.</>} />
+        </div>
+
+        <CopyPanel />
+
+        <Panel title="Flutter reference" desc="One serializer pair (rowsAsTsv / cellsAsTsv) on each controller, plus copy*ToClipboard wrappers; ⌘C calls copySelectionToClipboard in the key handler.">
+          <CodeBlock label="TSV serialize + clipboard" file="data/readable_table_controller.dart · editable_table_controller.dart" code={F_CODE} defaultOpen />
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-06-readable-column-types.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 06</a>
+          <a href="phase-08-tree-selection.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 08 · Tree selection <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

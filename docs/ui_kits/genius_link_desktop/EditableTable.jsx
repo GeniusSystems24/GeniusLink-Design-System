@@ -62,6 +62,16 @@ function EditableTable({
   const nRows = rows.length;
   const nCols = columns.length;
 
+  // Keep the selection inside the grid when rows/cols change underneath us
+  // (external edits, deletes, column reshapes). Prevents reading undefined cells.
+  React.useEffect(() => {
+    setSel(s => {
+      const r = Math.min(s.r, Math.max(0, nRows - 1));
+      const c = Math.min(s.c, Math.max(0, nCols - 1));
+      return (r === s.r && c === s.c) ? s : { r, c };
+    });
+  }, [nRows, nCols]);
+
   const focusGrid = () => { if (wrapRef.current) wrapRef.current.focus(); };
   React.useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
 
@@ -86,7 +96,11 @@ function EditableTable({
       return;
     }
     onChange(rows.filter((_, i) => i !== target));
-    setSel(s => ({ r: Math.min(s.r, nRows - 2), c: s.c }));
+    setSel(s => {
+      let r = target < s.r ? s.r - 1 : s.r;   // row above the cursor removed → shift up
+      r = Math.max(0, Math.min(r, nRows - 2)); // clamp to the new last index
+      return { r, c: s.c };
+    });
     focusGrid();
   };
 
@@ -95,25 +109,38 @@ function EditableTable({
     setDraft(initial != null ? initial : String(cur));
     setEditing(true);
   };
+
+  // Atomic commit: write the draft AND navigate (auto-growing a row if we step
+  // past the end) in a SINGLE onChange, so the typed value is never clobbered by
+  // a second stale-closure update. This is the core controlled-component fix.
   const commit = (move) => {
-    setCell(sel.r, sel.c, draft);
+    let next = rows.map((row, i) => i === sel.r ? { ...row, [columns[sel.c].key]: draft } : row);
+    let target = { r: sel.r, c: sel.c };
+    if (move) {
+      let r = sel.r + move.dr, c = sel.c + move.dc;
+      if (c < 0) { c = nCols - 1; r -= 1; }
+      if (c >= nCols) { c = 0; r += 1; }
+      if (r < 0) { r = 0; c = 0; }
+      if (r >= next.length) { next = [...next, blank()]; } // grow to receive the move
+      target = { r: Math.min(r, next.length - 1), c: Math.max(0, Math.min(c, nCols - 1)) };
+    }
     setEditing(false);
-    if (move) moveSel(move.dr, move.dc, true);
+    setSel(target);
+    onChange(next);
     focusGrid();
   };
   const cancel = () => { setEditing(false); focusGrid(); };
 
-  const moveSel = (dr, dc, autoAddRow) => {
+  // Pure keyboard navigation — clamps to existing cells, never mutates rows.
+  // (Row growth happens only on commit, addRow, or the trailing add-row click.)
+  const moveSel = (dr, dc) => {
     setSel(s => {
       let r = s.r + dr, c = s.c + dc;
       if (c < 0) { c = nCols - 1; r -= 1; }
       if (c >= nCols) { c = 0; r += 1; }
-      if (r < 0) r = 0;
-      if (r >= nRows) {
-        if (autoAddRow) { onChange([...rows, blank()]); }
-        else { r = nRows - 1; }
-      }
-      return { r: Math.max(0, r), c: Math.max(0, Math.min(c, nCols - 1)) };
+      r = Math.max(0, Math.min(r, nRows - 1));
+      c = Math.max(0, Math.min(c, nCols - 1));
+      return { r, c };
     });
   };
 

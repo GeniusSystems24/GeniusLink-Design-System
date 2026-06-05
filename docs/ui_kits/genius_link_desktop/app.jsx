@@ -499,7 +499,15 @@ function App() {
   const tabs = tabState.list;
   const activeTid = tabState.activeTid;
   const [theme, setTheme] = React.useState(() => localStorage.getItem('gl-theme') || 'dark');
+  const [dir, setDir] = React.useState(() => localStorage.getItem('gl-dir') || 'ltr');
+  const [tenantId, setTenantId] = React.useState(9);
   const [toast, setToast] = React.useState(null);
+
+  React.useEffect(() => {
+    document.documentElement.dir = dir;
+    localStorage.setItem('gl-dir', dir);
+    return () => { document.documentElement.dir = 'ltr'; };
+  }, [dir]);
 
   const activeTab = tabs.find((t) => t.tid === activeTid);
   const screen = activeTab ? activeTab.screen : 'dashboard';
@@ -524,6 +532,8 @@ function App() {
     });
   };
   const setScreen = setActive;
+
+  // (keyboard shortcuts, "/" search, and Esc are owned by AppShell)
 
   const closeTab = (tid) => setTabState((prev) => {
     const list = prev.list.filter((t) => t.tid !== tid);
@@ -632,35 +642,30 @@ function App() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'grid', gridTemplateColumns: '256px 1fr',
-      background: 'var(--gl-bg)', color: 'var(--gl-fg-1)',
-    }}>
-      <Sidebar screen={screen} setScreen={setScreen} theme={theme} setTheme={setTheme} />
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative' }}>
-        <WorkspaceTabs
-          tabs={tabModels}
-          activeTid={activeTid}
-          onSelect={setActiveTid}
-          onClose={closeTab}
-          onClearDirty={clearDirty}
-          onAdd={() => setScreen('dashboard')}
-          onReorder={reorderTabs}
-          onPin={togglePin}
-          onDuplicate={duplicateTab}
-          onCloseOthers={closeOthers}
-          onCloseRight={closeToRight}
-          screenProps={screenProps} />
-        <div style={{ position: 'relative', overflow: 'auto', flex: 1, background: 'var(--gl-bg)' }}>
-          <Watermark screen={screen} />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            {tabs.length === 0 ? <EmptyWorkspace /> : <Comp {...screenProps} />}
-          </div>
+    <AppShell screen={screen} setScreen={setScreen} theme={theme} setTheme={setTheme}
+      dir={dir} setDir={setDir} tenantId={tenantId} setTenantId={setTenantId}>
+      <WorkspaceTabs
+        tabs={tabModels}
+        activeTid={activeTid}
+        onSelect={setActiveTid}
+        onClose={closeTab}
+        onClearDirty={clearDirty}
+        onAdd={() => setScreen('dashboard')}
+        onReorder={reorderTabs}
+        onPin={togglePin}
+        onDuplicate={duplicateTab}
+        onCloseOthers={closeOthers}
+        onCloseRight={closeToRight}
+        screenProps={screenProps} />
+      <div style={{ position: 'relative', overflow: 'auto', flex: 1, minHeight: 0, background: 'var(--gl-bg)' }}>
+        <Watermark screen={screen} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {tabs.length === 0 ? <EmptyWorkspace /> : <Comp {...screenProps} />}
         </div>
-        {screen === 'users' && window.SessionExpiryBanner && <window.SessionExpiryBanner />}
-        {toast && <Toast>{toast}</Toast>}
       </div>
-    </div>
+      {screen === 'users' && window.SessionExpiryBanner && <window.SessionExpiryBanner />}
+      {toast && <Toast>{toast}</Toast>}
+    </AppShell>
   );
 }
 
@@ -700,233 +705,283 @@ const SECTION_LABELS = {
   Sales: 'Sales', Procurement: 'Procurement', Settings: 'Settings', Modules: 'Modules',
 };
 
-// Spotlight-style search over EVERY screen — main hub entries and the sub
-// screens that live behind them — so any tab can be found and opened directly.
-function SidebarSearch({ setScreen }) {
-  const [query, setQuery] = React.useState('');
-  const [open, setOpen] = React.useState(false);
-  const [activeIdx, setActiveIdx] = React.useState(0);
-  const [focused, setFocused] = React.useState(false);
-  const boxRef = React.useRef(null);
-  const inputRef = React.useRef(null);
-  const listRef = React.useRef(null);
+/* =========================================================
+   SIDEBAR NAV TREE  (Section → Module → Group → Item · RTL-aware)
+   Ported from design_system/NavigationSidebar.jsx.
+   ========================================================= */
 
-  const results = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    const toks = q.split(/\s+/);
-    return SCREENS
-      .filter((s) => {
-        const hay = (s.label + ' ' + (SECTION_LABELS[s.section] || s.section)).toLowerCase();
-        return toks.every((t) => hay.includes(t));
-      })
-      .slice(0, 10);
-  }, [query]);
+// Module sub-tab layout. Each module groups its real screen ids so the sidebar
+// becomes a genuine 3-level tree. Labels resolve from SCREENS.
+const TREE_MODULES = {
+  accountsHub: { label: 'Accounts', icon: 'ledger', groups: [
+    { group: 'Chart of Accounts', items: ['accounts', 'accountTree', 'createAccount'] },
+    { group: 'Account Groups', items: ['group'] },
+  ] },
+  ledgerHub: { label: 'Ledger', icon: 'ledger', groups: [
+    { group: 'Journal Entries', items: ['journals', 'createJournal', 'journal'] },
+  ] },
+  bankingHub: { label: 'Banking', icon: 'switch2', groups: [
+    { group: 'Cash Movements', items: ['deposit', 'withdrawal'] },
+    { group: 'Transfers', items: ['localTransfer', 'extTransfer'] },
+  ] },
+  reportsHub: { label: 'Reports', icon: 'doc', groups: [
+    { group: 'Financial', items: ['trialBalance', 'incomeStmt', 'balanceSheet'] },
+    { group: 'Inventory', items: ['invValuation'] },
+    { group: 'Security', items: ['auditLog'] },
+  ] },
+  storesHub: { label: 'Inventory & Stores', icon: 'store', groups: [
+    { group: 'Catalog', items: ['products', 'categories', 'uom', 'priceLists'] },
+    { group: 'Warehouses', items: ['stores', 'createStore'] },
+    { group: 'Stock Operations', items: ['inventory', 'receive', 'transferList', 'adjust', 'stockTake', 'barcodePrint'] },
+  ] },
+  salesHub: { label: 'Sales', icon: 'user', groups: [
+    { group: 'Customers', items: ['customers', 'createCustomer'] },
+  ] },
+  procurementHub: { label: 'Procurement', icon: 'briefcase', groups: [
+    { group: 'Suppliers', items: ['suppliers', 'createSupplier'] },
+  ] },
+  configHub: { label: 'Configuration', icon: 'compass', groups: [
+    { group: 'Currencies', items: ['currencies', 'createCurrency', 'exchangeRates'] },
+    { group: 'Calendar', items: ['fiscalYear'] },
+  ] },
+  adminHub: { label: 'Team & Access', icon: 'user', groups: [
+    { group: 'Users', items: ['users', 'createUser'] },
+    { group: 'Access', items: ['roles'] },
+  ] },
+};
 
-  React.useEffect(() => { setActiveIdx(0); }, [query]);
-
-  // dismiss on outside click
-  React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
-    window.addEventListener('mousedown', onDoc);
-    return () => window.removeEventListener('mousedown', onDoc);
-  }, [open]);
-
-  // "/" anywhere focuses the search (unless typing in a field)
-  React.useEffect(() => {
-    const onSlash = (e) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target, tag = t && t.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
-      e.preventDefault();
-      if (inputRef.current) inputRef.current.focus();
-      setOpen(true);
-    };
-    window.addEventListener('keydown', onSlash);
-    return () => window.removeEventListener('keydown', onSlash);
-  }, []);
-
-  // keep the active row scrolled into view
-  React.useEffect(() => {
-    const el = listRef.current && listRef.current.children[activeIdx];
-    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
-  }, [activeIdx]);
-
-  const choose = (s) => {
-    if (!s) return;
-    setScreen(s.id);
-    setQuery('');
-    setOpen(false);
-    if (inputRef.current) inputRef.current.blur();
+const screenById = (id) => SCREENS.find((s) => s.id === id) || { id, label: id, icon: 'doc' };
+const leafNode = (id) => { const s = screenById(id); return { id: s.id, label: s.label, icon: s.icon }; };
+const moduleTreeNode = (hubId) => {
+  const m = TREE_MODULES[hubId];
+  return {
+    id: hubId, label: m.label, icon: m.icon,
+    children: m.groups.map((g) => ({
+      id: hubId + ':' + g.group, label: g.group, group: true,
+      children: g.items.map(leafNode),
+    })),
   };
+};
 
-  const onKey = (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setActiveIdx((i) => Math.min(i + 1, Math.max(results.length - 1, 0))); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
-    else if (e.key === 'Enter') { e.preventDefault(); choose(results[activeIdx]); }
-    else if (e.key === 'Escape') { e.preventDefault(); if (query) setQuery(''); else { setOpen(false); if (inputRef.current) inputRef.current.blur(); } }
+const NAV_TREE_SECTIONS = [
+  { section: 'Overview', items: [leafNode('dashboard'), leafNode('invDashboard')] },
+  { section: 'Finance', items: ['accountsHub', 'ledgerHub', 'bankingHub', 'reportsHub'].map(moduleTreeNode) },
+  { section: 'Operations', items: ['storesHub', 'salesHub', 'procurementHub'].map(moduleTreeNode) },
+  { section: 'Administration', items: [moduleTreeNode('configHub'), moduleTreeNode('adminHub'), leafNode('settingsHub')] },
+];
+// Make Settings show its real label/icon as a direct leaf.
+NAV_TREE_SECTIONS[3].items[2] = { ...leafNode('settingsHub'), label: 'Settings', icon: 'settings' };
+
+// leaf screen id → ancestor node-id chain (for auto-expanding the active path)
+const TREE_ANCESTORS = (() => {
+  const map = {};
+  const walk = (node, chain) => {
+    if (node.children) node.children.forEach((c) => walk(c, [...chain, node.id]));
+    else map[node.id] = chain;
   };
+  NAV_TREE_SECTIONS.forEach((sec) => sec.items.forEach((n) => walk(n, [])));
+  return map;
+})();
 
-  const showResults = open && query.trim().length > 0;
+// One-time injected styles: elegant themed scrollbar + tree fade-in.
+(function injectGlNavStyles() {
+  if (typeof document === 'undefined' || document.getElementById('gl-tree-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'gl-tree-styles';
+  s.textContent = `
+    .gl-nav-scroll { scrollbar-width: thin; scrollbar-color: var(--gl-border-strong) transparent; }
+    .gl-nav-scroll::-webkit-scrollbar { width: 7px; }
+    .gl-nav-scroll::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+    .gl-nav-scroll::-webkit-scrollbar-thumb { background: var(--gl-border-strong); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+    .gl-nav-scroll:hover::-webkit-scrollbar-thumb { background: var(--gl-fg-4); background-clip: padding-box; }
+    @keyframes glTreeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  `;
+  document.head.appendChild(s);
+})();
+
+// Tree geometry — each level steps in by GUTTER; connectors drawn with divs
+// using logical insets so RTL mirrors automatically.
+const GUT = 19;
+const cInset = (d) => 13 + d * GUT;
+const lInset = (d) => cInset(d) + 10;
+const ELBOW_W = GUT - 8;
+const TREE_LINE = 'var(--gl-border-strong)';
+const ACCENT_BLUE = '#4A7CFF';
+const TI_TOP = 20, TI_ITEM = 16, TI_BOX = 28;
+const ROW_HEIGHTS = { direct: 42, module: 42, group: 36, item: 38 };
+const kindOf = (node, depth) => node.children ? (depth === 0 ? 'module' : 'group') : (depth === 0 ? 'direct' : 'item');
+
+// ── Screen metadata: keyboard shortcuts ("g"+key) + badges ──
+const SCREEN_META = {
+  dashboard:    { keys: ['g', 'd'] },
+  invDashboard: { keys: ['g', 'i'] },
+  accountTree:  { keys: ['g', 't'] },
+  journals:     { keys: ['g', 'j'], badge: { text: '3', tone: 'accent' } },
+  trialBalance: { keys: ['g', 'b'] },
+  products:     { keys: ['g', 'p'] },
+  stockTake:    { badge: { text: 'New', tone: 'green' } },
+  auditLog:     { badge: { text: '12', tone: 'muted' } },
+  exchangeRates:{ badge: { text: 'Live', tone: 'green' } },
+};
+const SHORTCUTS = Object.keys(SCREEN_META)
+  .filter((id) => SCREEN_META[id].keys)
+  .map((id) => ({ id, combo: SCREEN_META[id].keys.join('') }));
+function subtreeHasBadge(node) {
+  return node.children ? node.children.some(subtreeHasBadge) : !!(SCREEN_META[node.id] && SCREEN_META[node.id].badge);
+}
+
+const BADGE_TONES = {
+  accent: { bg: 'rgba(74,124,255,0.16)', fg: ACCENT_BLUE, bd: 'rgba(74,124,255,0.34)' },
+  green:  { bg: 'rgba(31,160,99,0.16)',  fg: '#2BBE7C',   bd: 'rgba(31,160,99,0.34)' },
+  amber:  { bg: 'rgba(217,149,42,0.16)', fg: '#E0A23B',   bd: 'rgba(217,149,42,0.34)' },
+  muted:  { bg: 'var(--gl-input-bg)',    fg: 'var(--gl-fg-3)', bd: 'var(--gl-border)' },
+};
+function NavBadge({ badge, small }) {
+  if (!badge) return null;
+  const t = BADGE_TONES[badge.tone || 'accent'];
+  return (
+    <span style={{
+      flexShrink: 0, fontFamily: 'var(--gl-font-mono)', fontSize: small ? 9 : 9.5, fontWeight: 700,
+      lineHeight: 1, padding: small ? '2px 5px' : '3px 6px', borderRadius: 99, letterSpacing: '0.02em',
+      background: t.bg, color: t.fg, border: `1px solid ${t.bd}`,
+    }}>{badge.text}</span>
+  );
+}
+function KeyHint({ keys }) {
+  if (!keys) return null;
+  return (
+    <span style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+      {keys.map((k, i) => (
+        <kbd key={i} style={{
+          fontFamily: 'var(--gl-font-mono)', fontSize: 9.5, fontWeight: 600, lineHeight: 1.5,
+          minWidth: 16, textAlign: 'center', padding: '1px 4px', borderRadius: 4,
+          color: 'var(--gl-fg-3)', background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)',
+        }}>{k.toUpperCase()}</kbd>
+      ))}
+    </span>
+  );
+}
+
+function SidebarTree({ screen, setScreen }) {
+  const [openIds, setOpenIds] = React.useState(() => {
+    const o = {}; (TREE_ANCESTORS[screen] || []).forEach((id) => { o[id] = true; }); return o;
+  });
+  React.useEffect(() => {
+    const chain = TREE_ANCESTORS[screen]; if (!chain) return;
+    setOpenIds((o) => { const n = { ...o }; chain.forEach((id) => { n[id] = true; }); return n; });
+  }, [screen]);
+  const toggle = (id) => setOpenIds((o) => ({ ...o, [id]: !o[id] }));
 
   return (
-    <div ref={boxRef} style={{ position: 'relative' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 9,
-        height: 38, padding: '0 12px', borderRadius: 8,
-        background: 'var(--gl-input-bg)',
-        border: `1px solid ${focused ? '#4A7CFF' : 'var(--gl-border)'}`,
-        transition: 'border-color 150ms ease',
-      }}>
-        <Icon name="search" size={15} color="var(--gl-fg-3)" />
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => { setFocused(true); setOpen(true); }}
-          onBlur={() => setFocused(false)}
-          onKeyDown={onKey}
-          placeholder="Search tabs…"
-          aria-label="Search tabs"
-          style={{
-            flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
-            color: 'var(--gl-fg-1)', fontFamily: 'var(--gl-font-body)', fontSize: 13,
-          }} />
-        {query
-          ? <button onMouseDown={(e) => { e.preventDefault(); setQuery(''); if (inputRef.current) inputRef.current.focus(); }}
-              aria-label="Clear search"
-              style={{ display: 'flex', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gl-fg-3)', padding: 0 }}>
-              <Icon name="close" size={14} />
-            </button>
-          : <kbd style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-4)', border: '1px solid var(--gl-border)', borderRadius: 4, padding: '1px 6px', lineHeight: 1.4 }}>/</kbd>}
-      </div>
+    <nav className="gl-nav-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', overflowX: 'hidden', flex: 1 }}>
+      {NAV_TREE_SECTIONS.map((sec) => (
+        <div key={sec.section} style={{ marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gl-fg-4)', padding: '12px 12px 6px', whiteSpace: 'nowrap', textAlign: 'start' }}>{sec.section}</div>
+          {sec.items.map((node) => (
+            <TreeNode key={node.id} node={node} depth={0} screen={screen} openIds={openIds} onToggle={toggle} setScreen={setScreen} />
+          ))}
+        </div>
+      ))}
+    </nav>
+  );
+}
 
-      {showResults && (
-        <div role="listbox" ref={listRef} style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60,
-          maxHeight: 360, overflowY: 'auto',
-          background: 'var(--gl-surface)', border: '1px solid var(--gl-border-strong)',
-          borderRadius: 8, boxShadow: 'var(--gl-shadow-pop)', padding: 6,
-        }}>
-          {results.length === 0
-            ? <div style={{ padding: '16px 10px', fontSize: 12.5, color: 'var(--gl-fg-3)', textAlign: 'center' }}>No tabs match “{query.trim()}”</div>
-            : results.map((s, i) => (
-              <button key={s.id} role="option" aria-selected={i === activeIdx}
-                onMouseEnter={() => setActiveIdx(i)}
-                onMouseDown={(e) => { e.preventDefault(); choose(s); }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  textAlign: 'left', fontFamily: 'var(--gl-font-body)',
-                  background: i === activeIdx ? 'var(--gl-hover)' : 'transparent',
-                }}>
-                <span style={{ display: 'flex', color: i === activeIdx ? '#4A7CFF' : 'var(--gl-fg-3)', flexShrink: 0 }}><Icon name={s.icon} size={15} /></span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--gl-fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
-                  <span style={{ display: 'block', fontSize: 10.5, fontFamily: 'var(--gl-font-mono)', color: 'var(--gl-fg-3)' }}>{SECTION_LABELS[s.section] || s.section}</span>
-                </span>
-                {i === activeIdx && <span style={{ display: 'flex', color: 'var(--gl-fg-4)', flexShrink: 0 }}><Icon name="chevRight" size={14} /></span>}
-              </button>
-            ))}
+function TreeNode({ node, depth, screen, openIds, onToggle, setScreen }) {
+  const kind = kindOf(node, depth);
+  if (!node.children) {
+    return <TreeRow node={node} depth={depth} kind={kind} active={screen === node.id} onClick={() => setScreen(node.id)} />;
+  }
+  const open = !!openIds[node.id];
+  const hasActive = (TREE_ANCESTORS[screen] || []).includes(node.id);
+  const lx = lInset(depth);
+  return (
+    <div>
+      <TreeRow node={node} depth={depth} kind={kind} expandable open={open} hasActive={hasActive} onClick={() => onToggle(node.id)} />
+      {open && (
+        <div style={{ animation: 'glTreeIn 180ms ease' }}>
+          {node.children.map((c, i) => {
+            const childH = ROW_HEIGHTS[kindOf(c, depth + 1)];
+            const last = i === node.children.length - 1;
+            return (
+              <div key={c.id} style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', insetInlineStart: lx, top: 0, height: childH / 2, width: 1.5, background: TREE_LINE }} />
+                {!last && <span style={{ position: 'absolute', insetInlineStart: lx, top: childH / 2, bottom: 0, width: 1.5, background: TREE_LINE }} />}
+                <span style={{ position: 'absolute', insetInlineStart: lx, top: childH / 2, width: ELBOW_W, height: 1.5, background: TREE_LINE }} />
+                <TreeNode node={c} depth={depth + 1} screen={screen} openIds={openIds} onToggle={onToggle} setScreen={setScreen} />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function Sidebar({ screen, setScreen, theme, setTheme }) {
-  const [tenantOpen, setTenantOpen] = React.useState(false);
-  const [tenantId, setTenantId] = React.useState(9);
-  return (
-    <aside style={{
-      background: 'var(--gl-surface)',
-      borderRight: '1px solid var(--gl-border)',
-      padding: '24px 16px',
-      display: 'flex', flexDirection: 'column', gap: 20,
-      position: 'sticky', top: 0, height: '100vh',
-      boxSizing: 'border-box',
-    }}>
-      <div style={{ padding: '4px 8px' }}>
-        <Logo size={24} />
-      </div>
-
-      {/* Workspace switcher chip */}
-      <button onClick={() => setTenantOpen((v) => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'var(--gl-input-bg)', border: '1px solid var(--gl-border)', cursor: 'pointer', textAlign: 'left' }}>
-        <span style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(74,124,255,0.18)', color: '#4A7CFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="building" size={15} /></span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--gl-fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{TENANT_NAMES[tenantId]}</span>
-          <span style={{ display: 'block', fontFamily: 'var(--gl-font-mono)', fontSize: 10, color: 'var(--gl-fg-3)' }}>Tenant {tenantId}</span>
-        </span>
-        <Icon name="switch2" size={14} color="var(--gl-fg-3)" />
-      </button>
-      {tenantOpen && window.TenantSwitcher && <window.TenantSwitcher onClose={() => setTenantOpen(false)} onNavigate={setScreen} currentId={tenantId} onSwitch={setTenantId} />}
-
-      <div style={{ height: 1, background: 'var(--gl-border)' }} />
-
-      <SidebarSearch setScreen={setScreen} />
-
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, overflow: 'auto', flex: 1 }}>
-        {/* Explicit grouped nav — modules collapse into hub entries */}
-        {SIDEBAR_NAV.map((grp) => (
-          <React.Fragment key={grp.group}>
-            <div style={{
-              fontWeight: 700, fontSize: 10, letterSpacing: '0.15em',
-              textTransform: 'uppercase', color: 'var(--gl-fg-4)',
-              padding: '12px 12px 6px',
-            }}>{grp.group}</div>
-            {grp.items.map((id) => {
-              const s = SCREENS.find((x) => x.id === id);
-              if (!s) return null;
-              return (
-                <NavItem key={s.id}
-                         active={screen === s.id}
-                         icon={s.icon}
-                         label={s.label}
-                         onClick={() => setScreen(s.id)} />
-              );
-            })}
-          </React.Fragment>
-        ))}
-      </nav>
-
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <ThemeToggle theme={theme} setTheme={setTheme} />
-        <div style={{
-          fontWeight: 700, fontSize: 10, letterSpacing: '0.15em',
-          textTransform: 'uppercase', color: 'var(--gl-fg-4)',
-          padding: '8px 12px', textAlign: 'center',
-          borderTop: '1px solid var(--gl-border)',
-        }}>UI Kit · v1.0</div>
-      </div>
-    </aside>
-  );
-}
-
-function NavItem({ active, icon, label, onClick }) {
+function TreeRow({ node, depth, kind, expandable, open, active, hasActive, onClick }) {
   const [hover, setHover] = React.useState(false);
+  const pad = cInset(depth);
+  const base = {
+    position: 'relative', display: 'flex', alignItems: 'center', width: '100%',
+    border: 'none', cursor: 'pointer', textAlign: 'start', fontFamily: 'var(--gl-font-body)',
+    paddingInlineStart: pad, paddingInlineEnd: 10, height: ROW_HEIGHTS[kind],
+    transition: 'background 150ms ease', whiteSpace: 'nowrap',
+  };
+  const chevron = expandable && (
+    <span style={{ display: 'flex', flexShrink: 0, marginInlineStart: 'auto', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 220ms ease', color: 'var(--gl-fg-3)' }}>
+      <Icon name="chevDown" size={14} />
+    </span>
+  );
+
+  if (kind === 'direct' || kind === 'module') {
+    const tint = kind === 'direct' ? (active ? '#fff' : 'var(--gl-fg-2)') : (hasActive ? ACCENT_BLUE : 'var(--gl-fg-2)');
+    const meta = SCREEN_META[node.id];
+    const moduleBadge = kind === 'module' && !open && subtreeHasBadge(node);
+    return (
+      <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        aria-label={node.label} aria-expanded={expandable ? open : undefined}
+        style={{ ...base, gap: 12, borderRadius: 10,
+          background: kind === 'direct' && active ? ACCENT_BLUE : (hover ? 'var(--gl-hover)' : 'transparent'),
+          color: tint, fontWeight: (active || hasActive) ? 600 : 500, fontSize: 13.5 }}>
+        <span style={{ display: 'flex', flexShrink: 0 }}><Icon name={node.icon} size={TI_TOP} /></span>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.label}</span>
+        {meta && meta.badge && <NavBadge badge={meta.badge} />}
+        {meta && meta.keys && hover && !active && <KeyHint keys={meta.keys} />}
+        {moduleBadge && <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: ACCENT_BLUE }} />}
+        {chevron}
+      </button>
+    );
+  }
+
+  if (kind === 'group') {
+    return (
+      <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+        aria-label={node.label} aria-expanded={open}
+        style={{ ...base, gap: 9, borderRadius: 8,
+          background: hover ? 'var(--gl-hover)' : 'transparent',
+          color: hasActive ? ACCENT_BLUE : 'var(--gl-fg-3)', fontWeight: 600, fontSize: 11.5 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: hasActive ? ACCENT_BLUE : 'var(--gl-fg-4)' }} />
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textTransform: 'uppercase' }}>{node.label}</span>
+        {chevron}
+      </button>
+    );
+  }
+
+  // item — boxed icon leaf
+  const meta = SCREEN_META[node.id];
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 12px', borderRadius: 4,
-        background: active ? 'rgba(74,124,255,0.12)' : (hover ? 'var(--gl-hover)' : 'transparent'),
-        color: active ? '#4A7CFF' : 'var(--gl-fg-2)',
-        border: 'none', cursor: 'pointer', textAlign: 'left',
-        fontFamily: 'var(--gl-font-body)', fontWeight: active ? 600 : 500, fontSize: 13,
-        transition: 'background 150ms ease',
-        position: 'relative',
-      }}>
-      {active && <div style={{
-        position: 'absolute', left: 0, top: 8, bottom: 8, width: 3,
-        background: '#4A7CFF', borderRadius: 12,
-      }} />}
-      <Icon name={icon} size={16} />
-      {label}
+    <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      aria-label={node.label}
+      style={{ ...base, gap: 10, borderRadius: 8,
+        background: active ? 'rgba(74,124,255,0.10)' : (hover ? 'var(--gl-hover)' : 'transparent'),
+        color: active ? ACCENT_BLUE : 'var(--gl-fg-2)', fontWeight: active ? 600 : 500, fontSize: 12.5 }}>
+      <span style={{ width: TI_BOX, height: TI_BOX, borderRadius: 8, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: `1px solid ${active ? ACCENT_BLUE : 'var(--gl-border)'}`,
+        background: active ? 'rgba(74,124,255,0.12)' : 'var(--gl-surface)',
+        color: active ? ACCENT_BLUE : 'var(--gl-fg-3)' }}><Icon name={node.icon} size={TI_ITEM} /></span>
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.label}</span>
+      {meta && meta.badge && <NavBadge badge={meta.badge} small />}
+      {meta && meta.keys && hover && !active && <KeyHint keys={meta.keys} />}
     </button>
   );
 }

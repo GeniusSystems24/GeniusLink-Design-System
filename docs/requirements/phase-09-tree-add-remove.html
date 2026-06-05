@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 09 — Tree add &amp; remove nodes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .focusable{outline:none}
+  .vp::-webkit-scrollbar{width:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .trow{user-select:none}
+  .trow:hover .rowacts{opacity:1}
+  .rowacts{opacity:0;transition:opacity var(--gl-dur-fast)}
+  .ctx{position:fixed;z-index:50;background:var(--gl-surface);border:1px solid var(--gl-border-strong);border-radius:var(--gl-radius-md);box-shadow:var(--gl-shadow-lg,0 12px 32px rgba(0,0,0,.4));padding:5px;min-width:184px}
+  .ctxitem{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--gl-fg-1)}
+  .ctxitem:hover{background:var(--gl-hover)}
+  .ctxitem.danger{color:var(--gl-danger-500)}
+  .nameedit{background:var(--gl-input-bg);border:1.5px solid var(--gl-blue-500);border-radius:5px;padding:2px 7px;font-size:13px;font-family:var(--gl-font-body);color:var(--gl-fg-1);outline:none;width:160px}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><path d="M24 32h14l3 4h22a2 2 0 0 1 2 2v4H22V34a2 2 0 0 1 2-2z" fill="#33353A"/><rect x="22" y="42" width="49" height="26" rx="3" fill="#1B1E26" stroke="#33353A" stroke-width="2"/><circle cx="72" cy="64" r="12" fill="#1DB88A"/><path d="M72 59v10M67 64h10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Kbd, Tag } = window;
+const { useState, useRef, useEffect, useCallback } = React;
+
+let _uid = 100;
+const nid = () => 'n' + (++_uid);
+const seed = () => ([
+  { id: 'g1', label: 'Assets', depth: 0, group: true, parent: null },
+  { id: 'g1a', label: 'Petty Cash', depth: 1, parent: 'g1' },
+  { id: 'g1b', label: 'Bank · SNB', depth: 1, parent: 'g1' },
+  { id: 'g2', label: 'Liabilities', depth: 0, group: true, parent: null },
+  { id: 'g2a', label: 'Payables', depth: 1, parent: 'g2' },
+  { id: 'g3', label: 'Equity', depth: 0, group: true, parent: null },
+  { id: 'g3a', label: 'Share Capital', depth: 1, parent: 'g3' },
+]);
+
+function AddRemoveTree() {
+  const [nodes, setNodes] = useState(seed);
+  const [expanded, setExpanded] = useState({ g1: true, g2: true, g3: true });
+  const [sel, setSel] = useState('g1a');
+  const [editing, setEditing] = useState(null);
+  const [editVal, setEditVal] = useState('');
+  const [ctx, setCtx] = useState(null);     // {x,y,id}
+  const [history, setHistory] = useState([]);
+  const [flash, setFlash] = useState(null);
+  const editRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => { if (editing && editRef.current) { editRef.current.focus(); editRef.current.select(); } }, [editing]);
+  useEffect(() => { const h = () => setCtx(null); window.addEventListener('click', h); return () => window.removeEventListener('click', h); }, []);
+  const note = (m) => { setFlash(m); clearTimeout(window.__t); window.__t = setTimeout(() => setFlash(null), 1600); };
+
+  const snapshot = () => setHistory(h => [...h, { nodes: nodes.map(n => ({ ...n })), expanded: { ...expanded }, sel }].slice(-30));
+  const undo = () => setHistory(h => { if (!h.length) return h; const last = h[h.length - 1]; setNodes(last.nodes); setExpanded(last.expanded); setSel(last.sel); note('Undone'); return h.slice(0, -1); });
+
+  // ── visible (respect expansion) in tree order ──
+  const childrenOf = (pid) => nodes.filter(n => n.parent === pid);
+  const visible = [];
+  const walk = (pid) => childrenOf(pid).forEach(n => { visible.push(n); if (n.group && expanded[n.id]) walk(n.id); });
+  walk(null);
+
+  const indexInNodes = (id) => nodes.findIndex(n => n.id === id);
+
+  const addChild = (pid) => {
+    snapshot();
+    const parent = nodes.find(n => n.id === pid);
+    const depth = (parent ? parent.depth + 1 : 0);
+    const id = nid();
+    // insert after parent's last descendant
+    const arr = nodes.slice();
+    let insertAt = indexInNodes(pid) + 1;
+    while (insertAt < arr.length && isDescendant(arr[insertAt], pid, arr)) insertAt++;
+    arr.splice(insertAt, 0, { id, label: 'New account', depth, parent: pid });
+    if (parent && !parent.group) { const pi = arr.findIndex(n => n.id === pid); arr[pi] = { ...arr[pi], group: true }; }
+    setNodes(arr); setExpanded(s => ({ ...s, [pid]: true })); setSel(id); beginRename(id, 'New account'); note('Child added');
+  };
+  const addFolder = (pid) => {
+    snapshot();
+    const parent = nodes.find(n => n.id === pid);
+    const depth = (parent ? parent.depth + 1 : 0);
+    const id = nid();
+    const arr = nodes.slice();
+    let insertAt = pid ? indexInNodes(pid) + 1 : arr.length;
+    if (pid) while (insertAt < arr.length && isDescendant(arr[insertAt], pid, arr)) insertAt++;
+    arr.splice(insertAt, 0, { id, label: 'New folder', depth, group: true, parent: pid });
+    if (parent && !parent.group) { const pi = arr.findIndex(n => n.id === pid); arr[pi] = { ...arr[pi], group: true }; }
+    setNodes(arr); if (pid) setExpanded(s => ({ ...s, [pid]: true })); setExpanded(s => ({ ...s, [id]: true })); setSel(id); beginRename(id, 'New folder'); note('Folder added');
+  };
+  const addSibling = (id) => {
+    const n = nodes.find(x => x.id === id); if (!n) return;
+    snapshot();
+    const newId = nid();
+    const arr = nodes.slice();
+    let insertAt = indexInNodes(id) + 1;
+    while (insertAt < arr.length && isDescendant(arr[insertAt], id, arr)) insertAt++;
+    arr.splice(insertAt, 0, { id: newId, label: 'New account', depth: n.depth, parent: n.parent });
+    setNodes(arr); setSel(newId); beginRename(newId, 'New account'); note('Sibling added');
+  };
+  const removeNode = (id) => {
+    snapshot();
+    const doomed = new Set([id]); let grew = true;
+    while (grew) { grew = false; nodes.forEach(n => { if (n.parent && doomed.has(n.parent) && !doomed.has(n.id)) { doomed.add(n.id); grew = true; } }); }
+    const arr = nodes.filter(n => !doomed.has(n.id));
+    setNodes(arr);
+    if (doomed.has(sel)) setSel(arr.length ? arr[0].id : null);
+    note(doomed.size > 1 ? `Removed ${doomed.size} nodes` : 'Removed');
+  };
+  const isDescendant = (node, ancestorId, arr) => { let p = node.parent; while (p) { if (p === ancestorId) return true; p = (arr.find(n => n.id === p) || {}).parent; } return false; };
+
+  const beginRename = (id, val) => { setEditing(id); setEditVal(val != null ? val : (nodes.find(n => n.id === id) || {}).label || ''); };
+  const commitRename = () => { if (editing) { setNodes(ns => ns.map(n => n.id === editing ? { ...n, label: editVal.trim() || n.label } : n)); } setEditing(null); };
+
+  const onKey = (e) => {
+    const idx = visible.findIndex(v => v.id === sel);
+    if (editing) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (visible[idx + 1]) setSel(visible[idx + 1].id); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (visible[idx - 1]) setSel(visible[idx - 1].id); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); const c = visible[idx]; if (c && c.group) setExpanded(s => ({ ...s, [c.id]: true })); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); const c = visible[idx]; if (c && c.group) setExpanded(s => ({ ...s, [c.id]: false })); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (sel) beginRename(sel); }
+    else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (sel) removeNode(sel); }
+    else if ((e.key === 'n' || e.key === 'N') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); if (sel) addChild(sel); }
+    else if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); }
+  };
+
+  const openCtx = (e, id) => { e.preventDefault(); e.stopPropagation(); setSel(id); setCtx({ x: e.clientX, y: e.clientY, id }); };
+  const selNode = nodes.find(n => n.id === sel);
+
+  return (
+    <div>
+      {/* toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <DSButton size="sm" variant="primary" icon="plus" onClick={() => sel && addChild(sel)}>Add child</DSButton>
+        <DSButton size="sm" variant="secondary" icon="folder" onClick={() => addFolder(selNode ? (selNode.group ? sel : selNode.parent) : null)}>Add folder</DSButton>
+        <DSButton size="sm" variant="secondary" icon="edit" onClick={() => sel && beginRename(sel)}>Rename</DSButton>
+        <DSButton size="sm" variant="danger" icon="trash" onClick={() => sel && removeNode(sel)}>Delete</DSButton>
+        <div style={{ flex: 1 }} />
+        <span style={{ minHeight: 20, fontSize: 12, color: 'var(--gl-success-500)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>{flash && <><GLIcon name="check2" size={14} />{flash}</>}</span>
+        <DSButton size="sm" variant="ghost" icon="back" onClick={undo}>Undo</DSButton>
+      </div>
+
+      <div ref={wrapRef} tabIndex={0} className="focusable vp" onKeyDown={onKey}
+        style={{ border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', background: 'var(--gl-bg)', maxHeight: 330, overflowY: 'auto', padding: '6px 0' }}>
+        {visible.length === 0 && <div style={{ padding: '28px', textAlign: 'center', color: 'var(--gl-fg-4)', fontSize: 13 }}>Tree is empty — use “Add folder”.</div>}
+        {visible.map(n => {
+          const isSel = n.id === sel;
+          const open = n.group && expanded[n.id];
+          return (
+            <div key={n.id} className="trow" onClick={() => setSel(n.id)} onContextMenu={(e) => openCtx(e, n.id)} onDoubleClick={() => beginRename(n.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 9, minHeight: 36, paddingInlineStart: 12 + n.depth * 22, paddingInlineEnd: 8, cursor: 'pointer',
+                background: isSel ? 'color-mix(in srgb, var(--gl-blue-500) 14%, transparent)' : 'transparent', boxShadow: isSel ? 'inset 2px 0 0 var(--gl-blue-500)' : 'none', color: isSel ? 'var(--gl-fg-1)' : 'var(--gl-fg-2)' }}>
+              {n.group
+                ? <span onClick={(e) => { e.stopPropagation(); setExpanded(s => ({ ...s, [n.id]: !s[n.id] })); }} style={{ display: 'flex', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--gl-dur-base)', color: 'var(--gl-fg-3)' }}><GLIcon name="chevR" size={14} /></span>
+                : <span style={{ width: 14 }} />}
+              <GLIcon name={n.group ? (open ? 'folderOpen' : 'folder') : 'doc'} size={15} color={isSel ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)'} />
+              {editing === n.id
+                ? <input ref={editRef} className="nameedit" value={editVal} onChange={e => setEditVal(e.target.value)} onBlur={commitRename} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitRename(); } else if (e.key === 'Escape') setEditing(null); e.stopPropagation(); }} onClick={e => e.stopPropagation()} />
+                : <span style={{ fontSize: 13, fontWeight: isSel ? 600 : 500 }}>{n.label}</span>}
+              <div className="rowacts" style={{ marginInlineStart: 'auto', display: 'flex', gap: 2 }}>
+                <button onClick={(e) => { e.stopPropagation(); addChild(n.id); }} title="Add child" style={iconBtn}><GLIcon name="plus" size={14} color="var(--gl-fg-3)" /></button>
+                <button onClick={(e) => { e.stopPropagation(); removeNode(n.id); }} title="Delete" style={iconBtn}><GLIcon name="trash" size={14} color="var(--gl-fg-3)" /></button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 11, fontSize: 12.5, color: 'var(--gl-fg-3)', lineHeight: 1.5 }}>
+        Right-click any node for the context menu · <Kbd>⌘N</Kbd> add child · <Kbd>Enter</Kbd> rename · <Kbd>Delete</Kbd> remove · <Kbd>⌘Z</Kbd> undo. {nodes.length} nodes.
+      </div>
+
+      {ctx && <div className="ctx" style={{ left: Math.min(ctx.x, window.innerWidth - 200), top: ctx.y }} onClick={e => e.stopPropagation()}>
+        <div className="ctxitem" onClick={() => { addChild(ctx.id); setCtx(null); }}><GLIcon name="plus" size={15} color="var(--gl-fg-3)" />Add child</div>
+        <div className="ctxitem" onClick={() => { addSibling(ctx.id); setCtx(null); }}><GLIcon name="plus" size={15} color="var(--gl-fg-3)" />Add sibling</div>
+        <div className="ctxitem" onClick={() => { addFolder(ctx.id); setCtx(null); }}><GLIcon name="folder" size={15} color="var(--gl-fg-3)" />Add folder inside</div>
+        <div className="ctxitem" onClick={() => { beginRename(ctx.id); setCtx(null); }}><GLIcon name="edit" size={15} color="var(--gl-fg-3)" />Rename</div>
+        <div style={{ height: 1, background: 'var(--gl-border)', margin: '4px 0' }} />
+        <div className="ctxitem danger" onClick={() => { removeNode(ctx.id); setCtx(null); }}><GLIcon name="trash" size={15} />Delete</div>
+      </div>}
+    </div>
+  );
+}
+const iconBtn = { width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' };
+
+const F_CODE = `// tree_controller.dart — structural ops (mostly already present; extended).
+TreeNodeId addChild(TreeNodeId parentId, {String label = 'New item', bool folder = false, T? value});
+TreeNodeId addSibling(TreeNodeId id, {String label = 'New item', T? value});
+void        remove(TreeNodeId id);                 // node + its subtree
+TreeNodeId? duplicate(TreeNodeId id);
+
+/// NEW — delete every node in the multi-selection as one undoable step.
+/// Ancestors are dropped from the work-list so a parent + child selected
+/// together don't double-remove.
+int removeSelected() {
+  if (_selection.isEmpty) return 0;
+  final ids = _selection.where((id) {
+    final anc = TreeOps.ancestorsOf<T>(_roots, id).toSet();
+    return !anc.any(_selection.contains);          // keep only topmost
+  }).toList();
+  var next = _roots.toList();
+  for (final id in ids) next = TreeOps.removeNode<T>(next, id);
+  _apply(next);                                     // single history entry
+  _selection.clear();
+  return ids.length;
+}
+
+// Every op routes through _apply(newRoots), which pushes one undo snapshot —
+// so add / remove / removeSelected are all ⌘Z-undoable. The view wires these to
+// a toolbar, per-row hover buttons, a right-click context menu, and the keys
+// ⌘N (add child) / Enter (rename) / Delete (remove) / ⌘Z (undo).`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="09" title="Tree add &amp; remove nodes"
+        requirement="Provide UI controls — buttons and context-menu actions — to add new nodes and delete existing ones, keeping the underlying tree data structure correct after each change."
+        theme={theme} setTheme={setTheme} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="Build the tree, not just browse it." tone="info">
+            Add a child, a sibling, or a folder; rename inline; delete a node (and its whole subtree) — from the toolbar, the hover buttons on each row, the right-click context menu, or the keyboard. Every change is one undoable step (<Kbd>⌘Z</Kbd>), and the structure stays consistent: deleting a folder takes its descendants, adding under a leaf promotes it to a folder.
+          </Callout>
+        </div>
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>The Tree was read-only structurally — no first-class way for a user to add or delete nodes, and no group delete for a multi-selection.</>}
+            after={<>First-class <code>addChild</code> / <code>addSibling</code> / <code>remove</code> / <code>duplicate</code>, plus a new <code>removeSelected()</code> that deletes a whole multi-selection in one undoable step. All routed through <code>_apply</code> so undo/redo just works.</>} />
+        </div>
+
+        <Panel title="Add, rename, delete" desc="Toolbar + per-row buttons + right-click menu + keyboard, all driving the same controller ops. Deleting a folder removes its subtree; adding under a leaf turns it into a folder.">
+          <Stage><AddRemoveTree /></Stage>
+        </Panel>
+
+        <Panel title="Flutter reference" desc="addChild / addSibling / remove / duplicate already existed; removeSelected() is new. Every op pushes one undo snapshot via _apply.">
+          <CodeBlock label="Structural ops + removeSelected" file="data/tree_controller.dart" code={F_CODE} defaultOpen />
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-08-tree-selection.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 08</a>
+          <a href="phase-10-tab-state.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 10 · Tab state <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 06 — ReadableTable column types</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .vp::-webkit-scrollbar{height:10px;width:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .lnk{color:var(--gl-blue-500);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="20" y="28" width="16" height="8" rx="2" fill="#4A7CFF"/><rect x="42" y="28" width="22" height="8" rx="2" fill="#1DB88A"/><rect x="20" y="44" width="30" height="8" rx="2" fill="#33353A"/><circle x="0" cx="58" cy="48" r="5" fill="#E0B341"/><rect x="20" y="60" width="44" height="6" rx="3" fill="#2A6FDB" opacity="0.4"/><rect x="20" y="60" width="26" height="6" rx="3" fill="#2A6FDB"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Tag } = window;
+const { useState, useMemo } = React;
+
+/* typed row */
+const TYPE_TONE = { Asset: '#4A7CFF', Liability: '#E0A23B', Equity: '#1DB88A', Revenue: '#1DB88A', Expense: '#EF4444' };
+const ST_TONE = { Reconciled: '#1DB88A', Pending: '#E0A23B', Flagged: '#EF4444' };
+const DATA = [
+  { code: '1010', en: 'Petty Cash', ar: 'النقدية', type: 'Asset', bal: 4200, util: 0.12, color: '#4A7CFF', date: '2024-12-01', time: '09:14', st: 'Reconciled', ref: 'GL-1010' },
+  { code: '1020', en: 'Bank · SNB', ar: 'بنك الأهلي', type: 'Asset', bal: 182540, util: 0.68, color: '#1DB88A', date: '2024-12-02', time: '11:02', st: 'Reconciled', ref: 'GL-1020' },
+  { code: '2010', en: 'Accounts Payable', ar: 'الذمم الدائنة', type: 'Liability', bal: -74100, util: 0.41, color: '#E0A23B', date: '2024-12-03', time: '15:47', st: 'Pending', ref: 'GL-2010' },
+  { code: '3010', en: 'Share Capital', ar: 'رأس المال', type: 'Equity', bal: -500000, util: 0.9, color: '#8B5CF6', date: '2024-11-30', time: '08:00', st: 'Reconciled', ref: 'GL-3010' },
+  { code: '4010', en: 'Sales Revenue', ar: 'إيرادات المبيعات', type: 'Revenue', bal: -640200, util: 0.77, color: '#1DB88A', date: '2024-12-04', time: '17:30', st: 'Pending', ref: 'GL-4010' },
+  { code: '5210', en: 'Salaries Expense', ar: 'مصروف الرواتب', type: 'Expense', bal: 156000, util: 0.55, color: '#EF4444', date: '2024-12-04', time: '12:20', st: 'Flagged', ref: 'GL-5210' },
+];
+const group = (n, d = 2) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+/* one column descriptor per TYPE — this is the whole point of the phase */
+const COLUMNS = [
+  { type: 'text', label: 'Account', w: 210, sortKey: r => r.en,
+    render: r => <div><div style={{ fontSize: 13 }}>{r.en}</div><div style={{ fontSize: 12, color: 'var(--gl-fg-3)', fontFamily: 'var(--gl-font-arabic)', marginTop: 2 }}>{r.ar}</div></div> },
+  { type: 'text', label: 'Code', w: 84, mono: true, sortKey: r => r.code, render: r => <span style={{ fontFamily: 'var(--gl-font-mono)' }}>{r.code}</span> },
+  { type: 'enumBadge', label: 'Type', w: 116, sortKey: r => r.type,
+    render: r => <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: TYPE_TONE[r.type], background: `color-mix(in srgb, ${TYPE_TONE[r.type]} 16%, transparent)`, whiteSpace: 'nowrap' }}>{r.type}</span> },
+  { type: 'number', label: 'Balance', w: 138, mono: true, align: 'end', sortKey: r => r.bal,
+    render: r => <span style={{ fontFamily: 'var(--gl-font-mono)', color: r.bal < 0 ? 'var(--gl-danger-500)' : 'var(--gl-success-500)' }}>{r.bal < 0 ? '−' : ''}{group(Math.abs(r.bal))}</span> },
+  { type: 'progress', label: 'Utilisation', w: 156, sortKey: r => r.util,
+    render: r => <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}><div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--gl-input-bg)', overflow: 'hidden' }}><div style={{ width: `${r.util * 100}%`, height: '100%', background: 'var(--gl-blue-500)' }} /></div><span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11.5, color: 'var(--gl-fg-3)', minWidth: 30, textAlign: 'right' }}>{Math.round(r.util * 100)}%</span></div> },
+  { type: 'color', label: 'Tag', w: 124, sortKey: r => r.color,
+    render: r => <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, borderRadius: 4, background: r.color, border: '1px solid rgba(0,0,0,.25)' }} /><span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 12 }}>{r.color.toUpperCase()}</span></div> },
+  { type: 'date', label: 'Posted', w: 116, mono: true, sortKey: r => r.date, render: r => <span style={{ fontFamily: 'var(--gl-font-mono)' }}>{r.date}</span> },
+  { type: 'time', label: 'Time', w: 84, mono: true, sortKey: r => r.time, render: r => <span style={{ fontFamily: 'var(--gl-font-mono)' }}>{r.time}</span> },
+  { type: 'enumBadge', label: 'Status', w: 120, sortKey: r => r.st,
+    render: r => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: ST_TONE[r.st], background: `color-mix(in srgb, ${ST_TONE[r.st]} 15%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: 999, background: ST_TONE[r.st] }} />{r.st}</span> },
+  { type: 'link', label: 'Reference', w: 110, sortKey: r => r.ref, render: r => <span className="lnk">{r.ref}</span> },
+];
+const TYPE_LABEL = { text: 'text', number: 'number', enumBadge: 'enum', date: 'date', time: 'time', color: 'color', progress: 'progress', link: 'link' };
+
+function TypedReadable({ rtl }) {
+  const [sort, setSort] = useState({ col: null, asc: true });
+  const rows = useMemo(() => {
+    if (sort.col == null) return DATA;
+    const k = COLUMNS[sort.col].sortKey;
+    const out = [...DATA].sort((a, b) => { const x = k(a), y = k(b); return (x < y ? -1 : x > y ? 1 : 0) * (sort.asc ? 1 : -1); });
+    return out;
+  }, [sort]);
+  const onSort = (ci) => setSort(s => s.col === ci ? { col: ci, asc: !s.asc } : { col: ci, asc: true });
+
+  const GT = COLUMNS.map(c => c.w + 'px').join(' ');
+  const totalW = COLUMNS.reduce((a, c) => a + c.w, 0);
+  return (
+    <div className="vp" dir={rtl ? 'rtl' : 'ltr'} style={{ overflowX: 'auto', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', background: 'var(--gl-surface)' }}>
+      <div style={{ minWidth: totalW }}>
+        <div style={{ display: 'grid', gridTemplateColumns: GT, background: 'var(--gl-bg)' }}>
+          {COLUMNS.map((c, ci) => (
+            <div key={ci} onClick={() => onSort(ci)} title="Sort"
+              style={{ padding: '8px 12px 9px', borderBottom: '1px solid var(--gl-border-strong)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4, alignItems: c.align === 'end' ? 'flex-end' : 'flex-start' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--gl-blue-500)', fontFamily: 'var(--gl-font-mono)', opacity: .85 }}>{TYPE_LABEL[c.type]}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: sort.col === ci ? 'var(--gl-fg-1)' : 'var(--gl-fg-3)' }}>
+                {c.label}
+                {sort.col === ci && <span style={{ display: 'flex', transform: sort.asc ? 'none' : 'rotate(180deg)' }}><GLIcon name="chevD" size={12} /></span>}
+              </span>
+            </div>
+          ))}
+        </div>
+        {rows.map((r, ri) => (
+          <div key={r.code} style={{ display: 'grid', gridTemplateColumns: GT, background: ri % 2 ? 'color-mix(in srgb, var(--gl-fg-1) 2%, transparent)' : 'transparent' }}>
+            {COLUMNS.map((c, ci) => (
+              <div key={ci} style={{ minHeight: 46, padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: c.align === 'end' ? 'flex-end' : 'flex-start', borderInlineEnd: '1px solid var(--gl-border)', borderBottom: '1px solid var(--gl-border)', fontSize: 12.5, color: 'var(--gl-fg-1)', overflow: 'hidden' }}>
+                {c.render(r)}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const F_CODE = `// readable_table_models.dart — typed factories, same kinds as EditableTable.
+// Each declares a column's KIND; the matching ReadableCells renderer formats it.
+final columns = <ReadableColumn<Account>>[
+  ReadableColumn.text('Account',
+      value: (a) => a.nameEn, secondary: (a) => a.nameAr, width: 210, sortable: true),
+  ReadableColumn.enumBadge('Type',
+      value: (a) => a.type, color: typeColor, width: 116),
+  ReadableColumn.number('Balance',
+      value: (a) => a.balance, decimals: 2, colorSign: true, width: 138),
+  ReadableColumn.progress('Utilisation',
+      value: (a) => a.utilisation, width: 156),
+  ReadableColumn.color('Tag',  hex: (a) => a.colorHex,  width: 124),
+  ReadableColumn.date('Posted', value: (a) => a.postedOn, width: 116),
+  ReadableColumn.time('Time',   value: (a) => a.postedAt, width: 84),
+  ReadableColumn.link('Reference',
+      text: (a) => a.ref, onTap: (a) => openLedger(a.ref), width: 110),
+];
+
+ReadableTable<Account>(columns: columns, rows: accounts, zebra: true);
+
+// The renderers live in readable_table_cells.dart (ReadableCells.number / .badge
+// / .date / .color / .progress / .link …) — theme-driven, no intl dependency.`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  const [dir, setDir] = useState('ltr');
+  const rtl = dir === 'rtl';
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="06" title="Column types in ReadableTable"
+        requirement="Support various data types in ReadableTable — like EditableTable's column types — with appropriate per-type rendering, so the read-only grid handles a diverse range of data."
+        theme={theme} setTheme={setTheme}
+        right={<Segmented value={dir} onChange={setDir} options={[{ value: 'ltr', label: 'LTR' }, { value: 'rtl', label: 'RTL · عربي' }]} ariaLabel="Direction" />} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="One declared kind per column." tone="info">
+            Every column below is built from a typed factory — <code>ReadableColumn.number</code>, <code>.enumBadge</code>, <code>.date</code>, <code>.color</code>, <code>.progress</code>, <code>.link</code> — not a hand-written cell builder. The small mono label above each header names its kind. Click any header to sort by that column's typed key. RTL mirrors the whole grid.
+          </Callout>
+        </div>
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>Every <code>ReadableColumn</code> required a bespoke <code>cell</code> builder — even a plain number or a status pill meant re-implementing formatting, alignment and colour at the call site, inconsistently.</>}
+            after={<><code>ReadableColumn.&lt;kind&gt;</code> factories mirror <code>EditableTable</code>'s types and delegate to shared <code>ReadableCells</code> renderers — so a column declares intent and gets consistent formatting, alignment and a typed sort key.</>} />
+        </div>
+
+        <Panel title="One of every column type" desc="text (bilingual) · number (signed, grouped) · enum badge · progress bar · colour swatch · date · time · link. Headers are sortable by the column's typed key.">
+          <Stage flush><div style={{ padding: 18 }}><TypedReadable rtl={rtl} /></div></Stage>
+        </Panel>
+
+        <Panel title="Flutter reference" desc="Factories added to ReadableColumn<T>; renderers in a new readable_table_cells.dart. The legacy unnamed constructor with a custom cell still works unchanged.">
+          <CodeBlock label="Typed ReadableColumn factories" file="data/readable_table_models.dart · readable_table_cells.dart" code={F_CODE} defaultOpen />
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-05-column-reordering.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 05</a>
+          <a href="phase-07-copy-rows-cells.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 07 · Copy rows &amp; cells <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

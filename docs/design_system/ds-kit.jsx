@@ -26,6 +26,16 @@ const DS_ICONS = {
   image:'M3 3h18v18H3z|M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z|M21 15l-5-5L5 21', home:'M3 11l9-8 9 8|M5 10v10h14V10',
   grid:'M3 3h7v7H3z|M14 3h7v7h-7z|M14 14h7v7h-7z|M3 14h7v7H3z', calendar:'M3 4h18v18H3z|M16 2v4|M8 2v4|M3 10h18',
   trend:'M4 18l5-6 4 3 7-9|M16 6h4v4', bars:'M4 21V10|M10 21V4|M16 21v-7|M21 21H3',
+  command:'M6 4a2 2 0 1 1-2 2h12a2 2 0 1 1-2-2v12a2 2 0 1 1 2-2H6a2 2 0 1 1 2 2z',
+  keyboard:'M3 5h18v14H3z|M7 9h.01|M11 9h.01|M15 9h.01|M7 13h.01|M11 13h.01|M15 13h.01|M8 16h8',
+  folder:'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  folderOpen:'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2H3z|M3 9h18l-2 8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  fileCode:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6|M9 13l-2 2 2 2|M14 13l2 2-2 2',
+  fileImg:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6|M9 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z|M18 18l-4-4-6 5',
+  people:'M17 21v-2a4 4 0 0 0-3-3.87|M9 21v-2a4 4 0 0 1 3-3.87|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M22 21v-2a4 4 0 0 0-3-3.87',
+  grip:'M9 5h.01|M9 12h.01|M9 19h.01|M15 5h.01|M15 12h.01|M15 19h.01',
+  check2:'M20 6L9 17l-5-5', minus:'M5 12h14', copy:'M9 9h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z|M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
+  cornerAdd:'M12 5v14|M5 12h14', clock:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z|M12 6v6l4 2', palette:'M12 22a10 10 0 1 1 0-20 10 10 0 0 1 8 16c-1 1-2 1-3 1h-2a2 2 0 0 0-1 3z|M7.5 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2z|M12 7.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z|M16.5 11a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
 };
 function GLIcon({ name, size = 18, color = 'currentColor', stroke = 1.6 }) {
   const raw = DS_ICONS[name]; if (!raw) return null;
@@ -33,7 +43,7 @@ function GLIcon({ name, size = 18, color = 'currentColor', stroke = 1.6 }) {
 }
 
 /* ── atoms ── */
-function DSButton({ children, variant = 'primary', icon, size = 'md', state, loading }) {
+function DSButton({ children, variant = 'primary', icon, size = 'md', state, loading, onClick, title, type }) {
   const [hv, setHv] = useState_(false); const [pr, setPr] = useState_(false);
   const forced = state; const hover = forced === 'hover' || hv; const press = forced === 'pressed' || pr; const disabled = forced === 'disabled';
   const v = {
@@ -44,17 +54,17 @@ function DSButton({ children, variant = 'primary', icon, size = 'md', state, loa
   }[variant];
   const h = size === 'sm' ? 32 : 40;
   return (
-    <button disabled={disabled} onMouseEnter={() => setHv(1)} onMouseLeave={() => { setHv(0); setPr(0); }} onMouseDown={() => setPr(1)} onMouseUp={() => setPr(0)}
+    <button disabled={disabled} title={title} type={type || 'button'} onClick={disabled || loading ? undefined : onClick} onMouseEnter={() => setHv(1)} onMouseLeave={() => { setHv(0); setPr(0); }} onMouseDown={() => setPr(1)} onMouseUp={() => setPr(0)}
       style={{ ...v, height: h, padding: `0 ${size === 'sm' ? 12 : 16}px`, borderRadius: 'var(--gl-radius-sm)', fontFamily: 'var(--gl-font-body)', fontWeight: variant === 'primary' ? 600 : 500, fontSize: size === 'sm' ? 13 : 14, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, transform: press ? 'scale(0.98)' : 'none', transition: 'background var(--gl-dur-base) var(--gl-ease-standard), transform 80ms' }}>
       {loading ? <DSSpinner size={15} color={variant === 'primary' ? '#fff' : 'var(--gl-fg-2)'} /> : icon && <GLIcon name={icon} size={15} />}
       {children}
     </button>
   );
 }
-function DSIconButton({ icon, variant = 'neutral', size = 36, state }) {
+function DSIconButton({ icon, variant = 'neutral', size = 36, state, onClick, title }) {
   const [hv, setHv] = useState_(false); const hover = state === 'hover' || hv; const disabled = state === 'disabled';
   const c = variant === 'danger' ? { fg: 'var(--gl-danger-500)', bg: hover ? 'rgba(239,68,68,.12)' : 'var(--gl-input-bg)' } : { fg: 'var(--gl-fg-1)', bg: hover ? 'var(--gl-hover)' : 'var(--gl-input-bg)' };
-  return <button disabled={disabled} onMouseEnter={() => setHv(1)} onMouseLeave={() => setHv(0)} style={{ width: size, height: size, borderRadius: 'var(--gl-radius-sm)', background: c.bg, color: c.fg, border: '1px solid var(--gl-border)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'background var(--gl-dur-base)' }}><GLIcon name={icon} size={Math.round(size * 0.46)} /></button>;
+  return <button disabled={disabled} title={title} type="button" onClick={disabled ? undefined : onClick} onMouseEnter={() => setHv(1)} onMouseLeave={() => setHv(0)} style={{ width: size, height: size, borderRadius: 'var(--gl-radius-sm)', background: c.bg, color: c.fg, border: '1px solid var(--gl-border)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'background var(--gl-dur-base)' }}><GLIcon name={icon} size={Math.round(size * 0.46)} /></button>;
 }
 function DSSpinner({ size = 18, color = 'var(--gl-blue-500)' }) {
   return <span style={{ width: size, height: size, display: 'inline-block', borderRadius: '50%', border: `2px solid ${color}`, borderTopColor: 'transparent', animation: 'dsspin 0.7s linear infinite' }} />;

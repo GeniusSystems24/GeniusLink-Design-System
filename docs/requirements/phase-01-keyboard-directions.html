@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 01 — Keyboard directions (LTR + RTL)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .focusable{outline:none}
+  .focusable:focus-visible{box-shadow:0 0 0 2px var(--gl-blue-500)}
+  *{box-sizing:border-box}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><path d="M38 50h24" stroke="#4A7CFF" stroke-width="4" stroke-linecap="round"/><path d="M54 42l8 8-8 8" fill="none" stroke="#4A7CFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M46 42l-8 8 8 8" fill="none" stroke="#1DB88A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, useKeyLog, KeyLog, Kbd, Callout, FixNote, CodeBlock, Tag } = window;
+const { useState, useRef, useEffect } = React;
+
+/* ════════════════════════════════════════════════════════════
+   The whole fix, in one line: a horizontal arrow resolves to a
+   VISUAL step. In RTL the index axis is mirrored, so flip it.
+   ════════════════════════════════════════════════════════════ */
+const hStep = (isRight, rtl) => (isRight ? 1 : -1) * (rtl ? -1 : 1);   // +1 = next index, -1 = prev index
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/* shared focusable-stage wrapper that shows a hint when not focused */
+function FocusHint({ focused }) {
+  if (focused) return null;
+  return <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+    <span style={{ background: 'color-mix(in srgb, var(--gl-blue-500) 92%, #000)', color: '#fff', fontSize: 11.5, fontWeight: 600, padding: '5px 11px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 7, boxShadow: 'var(--gl-shadow)' }}>
+      <GLIcon name="keyboard" size={14} /> Click, then use the arrow keys
+    </span>
+  </div>;
+}
+
+/* ─────────────────────────  A · BrowserStyleTabBar  ───────────────────────── */
+const TABS = [
+  { id: 't1', label: 'Trial Balance', icon: 'bars' },
+  { id: 't2', label: 'Journal JV-0042', icon: 'doc', dirty: true },
+  { id: 't3', label: 'Accounts', icon: 'folder' },
+  { id: 't4', label: 'Store · Riyadh', icon: 'home' },
+  { id: 't5', label: 'Audit Log', icon: 'info' },
+];
+function TabsDemo({ rtl }) {
+  const [active, setActive] = useState(2);
+  const [focused, setFocused] = useState(false);
+  const [log, push] = useKeyLog();
+  const onKey = (e) => {
+    const k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowLeft') {
+      e.preventDefault();
+      const isRight = k === 'ArrowRight';
+      const d = hStep(isRight, rtl);
+      setActive(a => {
+        const ni = clamp(a + d, 0, TABS.length - 1);
+        push(k, `move ${isRight ? 'right →' : '← left'}`, true);
+        return ni;
+      });
+    } else if (k === 'Home') { e.preventDefault(); setActive(0); push('Home', 'first tab (start)'); }
+    else if (k === 'End') { e.preventDefault(); setActive(TABS.length - 1); push('End', 'last tab (end)'); }
+  };
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 250px', gap: 18, alignItems: 'start' }}>
+      <div>
+        <div tabIndex={0} className="focusable" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={onKey}
+          style={{ position: 'relative', borderRadius: 'var(--gl-radius-md)', border: '1px solid var(--gl-border)', overflow: 'hidden' }}>
+          <FocusHint focused={focused} />
+          <div dir={rtl ? 'rtl' : 'ltr'} style={{ display: 'flex', alignItems: 'stretch', background: 'var(--gl-bg)', filter: focused ? 'none' : 'blur(1px)', opacity: focused ? 1 : 0.5, transition: 'opacity var(--gl-dur-base)' }}>
+            {TABS.map((t, i) => {
+              const on = i === active;
+              return (
+                <div key={t.id} onClick={() => setActive(i)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', height: 42, minWidth: 0, cursor: 'pointer', position: 'relative',
+                    background: on ? 'var(--gl-surface)' : 'transparent', color: on ? 'var(--gl-fg-1)' : 'var(--gl-fg-3)',
+                    borderInlineEnd: '1px solid var(--gl-border)', borderTop: on ? '2px solid var(--gl-blue-500)' : '2px solid transparent' }}>
+                  <GLIcon name={t.icon} size={15} color={on ? 'var(--gl-blue-500)' : 'currentColor'} />
+                  <span style={{ fontSize: 13, fontWeight: on ? 600 : 500, whiteSpace: 'nowrap' }}>{t.label}</span>
+                  {t.dirty && <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--gl-warning-500)', flexShrink: 0 }} />}
+                  <GLIcon name="close" size={13} color="var(--gl-fg-4)" />
+                </div>
+              );
+            })}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px' }}><GLIcon name="plus" size={16} color="var(--gl-fg-3)" /></div>
+          </div>
+        </div>
+        <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--gl-fg-3)', lineHeight: 1.5 }}>
+          Active: <strong style={{ color: 'var(--gl-fg-1)' }}>{TABS[active].label}</strong>. The same <Kbd>→</Kbd> always moves to the tab on the right — which is the <em>previous</em> index when the bar is RTL.
+        </div>
+      </div>
+      <KeyLog log={log} hint="Click the bar, press ← →" />
+    </div>
+  );
+}
+
+/* ─────────────────────────  B · Tree  ───────────────────────── */
+const TREE = [
+  { id: 'a', label: 'Assets', depth: 0, group: true,
+    kids: ['a1', 'a2'] },
+  { id: 'a1', label: 'Cash & Banks', depth: 1, group: true, kids: ['a1a', 'a1b'] },
+  { id: 'a1a', label: 'Petty Cash', depth: 2 },
+  { id: 'a1b', label: 'Bank · SNB', depth: 2 },
+  { id: 'a2', label: 'Receivables', depth: 1 },
+  { id: 'l', label: 'Liabilities', depth: 0, group: true, kids: ['l1'] },
+  { id: 'l1', label: 'Payables', depth: 1 },
+];
+function TreeDemo({ rtl }) {
+  const [expanded, setExpanded] = useState({ a: true, a1: true });
+  const [cursor, setCursor] = useState('a');
+  const [focused, setFocused] = useState(false);
+  const [log, push] = useKeyLog();
+
+  // visible rows respecting expansion
+  const visible = [];
+  const walk = (id) => {
+    const n = TREE.find(t => t.id === id); if (!n) return;
+    visible.push(n);
+    if (n.group && expanded[n.id]) (n.kids || []).forEach(walk);
+  };
+  ['a', 'l'].forEach(walk);
+
+  const idx = visible.findIndex(n => n.id === cursor);
+  const cur = visible[idx];
+  const isOpen = cur && cur.group && expanded[cur.id];
+
+  const onKey = (e) => {
+    const k = e.key;
+    if (k === 'ArrowDown') { e.preventDefault(); const n = visible[clamp(idx + 1, 0, visible.length - 1)]; setCursor(n.id); push('↓', 'next row'); }
+    else if (k === 'ArrowUp') { e.preventDefault(); const n = visible[clamp(idx - 1, 0, visible.length - 1)]; setCursor(n.id); push('↑', 'prev row'); }
+    else if (k === 'ArrowRight' || k === 'ArrowLeft') {
+      e.preventDefault();
+      const isRight = k === 'ArrowRight';
+      // visual "into / deeper" is +1 step in LTR (right) but mirrored in RTL (left)
+      const into = hStep(isRight, rtl) > 0;
+      if (into) {
+        if (cur.group && !expanded[cur.id]) { setExpanded(s => ({ ...s, [cur.id]: true })); push(k, 'expand (into ▸)'); }
+        else if (cur.group && expanded[cur.id]) { const child = visible[idx + 1]; if (child) setCursor(child.id); push(k, 'step into child'); }
+        else push(k, 'leaf — no children', false);
+      } else {
+        if (cur.group && expanded[cur.id]) { setExpanded(s => ({ ...s, [cur.id]: false })); push(k, 'collapse (out ◂)'); }
+        else { const parent = TREE.find(t => (t.kids || []).includes(cur.id)); if (parent) { setCursor(parent.id); push(k, 'step out to parent'); } else push(k, 'at root', false); }
+      }
+    }
+    else if (k === 'Enter' && cur.group) { e.preventDefault(); setExpanded(s => ({ ...s, [cur.id]: !s[cur.id] })); push('Enter', 'toggle group'); }
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 250px', gap: 18, alignItems: 'start' }}>
+      <div>
+        <div tabIndex={0} className="focusable" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={onKey}
+          style={{ position: 'relative', borderRadius: 'var(--gl-radius-md)', border: '1px solid var(--gl-border)', overflow: 'hidden', background: 'var(--gl-bg)' }}>
+          <FocusHint focused={focused} />
+          <div dir={rtl ? 'rtl' : 'ltr'} style={{ filter: focused ? 'none' : 'blur(1px)', opacity: focused ? 1 : 0.5, transition: 'opacity var(--gl-dur-base)', padding: '6px 0' }}>
+            {visible.map(n => {
+              const on = n.id === cursor;
+              const open = n.group && expanded[n.id];
+              return (
+                <div key={n.id} onClick={() => { setCursor(n.id); if (n.group) setExpanded(s => ({ ...s, [n.id]: !s[n.id] })); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, height: 34, paddingInlineStart: 12 + n.depth * 22, paddingInlineEnd: 12, cursor: 'pointer',
+                    background: on ? 'color-mix(in srgb, var(--gl-blue-500) 12%, transparent)' : 'transparent',
+                    boxShadow: on ? 'inset 2px 0 0 var(--gl-blue-500)' : 'none',
+                    color: on ? 'var(--gl-fg-1)' : 'var(--gl-fg-2)' }}>
+                  {n.group
+                    ? <span style={{ display: 'flex', transform: rtl ? (open ? 'rotate(90deg)' : 'rotate(180deg)') : (open ? 'rotate(90deg)' : 'none'), transition: 'transform var(--gl-dur-base)', color: 'var(--gl-fg-3)' }}><GLIcon name="chevR" size={14} /></span>
+                    : <span style={{ width: 14 }} />}
+                  <GLIcon name={n.group ? (open ? 'folderOpen' : 'folder') : 'doc'} size={15} color={on ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)'} />
+                  <span style={{ fontSize: 13, fontWeight: on ? 600 : 500 }}>{n.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--gl-fg-3)', lineHeight: 1.5 }}>
+          On <strong style={{ color: 'var(--gl-fg-1)' }}>{cur ? cur.label : '—'}</strong>. The arrow pointing <em>toward the children</em> expands &amp; steps in — that's <Kbd>→</Kbd> in LTR and <Kbd>←</Kbd> in RTL, since the indent mirrors.
+        </div>
+      </div>
+      <KeyLog log={log} hint="Click the tree, press ↑ ↓ ← →" />
+    </div>
+  );
+}
+
+/* ─────────────────────────  C/D · Grids (Editable + Readable)  ───────────────────────── */
+const GCOLS = ['Code', 'Account', 'Type', 'Balance', 'Status'];
+const GROWS = [
+  ['1010', 'Petty Cash', 'Asset', '4,200.00', 'Active'],
+  ['1020', 'Bank · SNB', 'Asset', '182,540.00', 'Active'],
+  ['2010', 'Payables', 'Liability', '−54,100.00', 'Open'],
+  ['3010', 'Capital', 'Equity', '500,000.00', 'Active'],
+];
+function GridDemo({ rtl, variant }) {
+  const editable = variant === 'editable';
+  const [sel, setSel] = useState({ r: 1, c: 1 });
+  const [focused, setFocused] = useState(false);
+  const [log, push] = useKeyLog();
+  const nR = GROWS.length, nC = GCOLS.length;
+  const onKey = (e) => {
+    const k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowLeft') {
+      e.preventDefault();
+      const isRight = k === 'ArrowRight';
+      const d = hStep(isRight, rtl);
+      setSel(s => ({ ...s, c: clamp(s.c + d, 0, nC - 1) }));
+      push(k, `cell ${isRight ? 'right →' : '← left'}`);
+    } else if (k === 'ArrowDown') { e.preventDefault(); setSel(s => ({ ...s, r: clamp(s.r + 1, 0, nR - 1) })); push('↓', 'cell down'); }
+    else if (k === 'ArrowUp') { e.preventDefault(); setSel(s => ({ ...s, r: clamp(s.r - 1, 0, nR - 1) })); push('↑', 'cell up'); }
+    else if (k === 'Home') { e.preventDefault(); setSel(s => ({ ...s, c: 0 })); push('Home', 'first column (start)'); }
+    else if (k === 'End') { e.preventDefault(); setSel(s => ({ ...s, c: nC - 1 })); push('End', 'last column (end)'); }
+  };
+  const GT = `64px minmax(120px,1.4fr) 96px 130px 92px`;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 250px', gap: 18, alignItems: 'start' }}>
+      <div>
+        <div tabIndex={0} className="focusable" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={onKey}
+          style={{ position: 'relative', borderRadius: 'var(--gl-radius-md)', border: '1px solid var(--gl-border-strong)', overflow: 'hidden' }}>
+          <FocusHint focused={focused} />
+          <div dir={rtl ? 'rtl' : 'ltr'} style={{ filter: focused ? 'none' : 'blur(1px)', opacity: focused ? 1 : 0.5, transition: 'opacity var(--gl-dur-base)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: GT, background: 'var(--gl-bg)' }}>
+              {GCOLS.map((c, ci) => (
+                <div key={c} style={{ padding: '9px 11px', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: ci === sel.c ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', borderBottom: '1px solid var(--gl-border-strong)', textAlign: ci >= 3 ? (ci === 3 ? 'end' : 'center') : 'start', whiteSpace: 'nowrap' }}>{c}</div>
+              ))}
+            </div>
+            {GROWS.map((row, r) => (
+              <div key={r} style={{ display: 'grid', gridTemplateColumns: GT }}>
+                {row.map((v, c) => {
+                  const on = sel.r === r && sel.c === c;
+                  const align = c >= 3 ? (c === 3 ? 'flex-end' : 'center') : 'flex-start';
+                  return (
+                    <div key={c} onClick={() => setSel({ r, c })}
+                      style={{ height: 36, padding: '0 11px', display: 'flex', alignItems: 'center', justifyContent: align,
+                        borderInlineEnd: '1px solid var(--gl-border)', borderBottom: '1px solid var(--gl-border)',
+                        background: on ? 'color-mix(in srgb, var(--gl-blue-500) 10%, var(--gl-surface))' : 'var(--gl-surface)',
+                        boxShadow: on ? 'inset 0 0 0 2px var(--gl-blue-500)' : 'none', position: on ? 'relative' : 'static', zIndex: on ? 2 : 1,
+                        fontFamily: (c === 0 || c === 3) ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 12.5,
+                        color: c === 3 && v.startsWith('−') ? 'var(--gl-danger-500)' : 'var(--gl-fg-1)', cursor: editable ? 'cell' : 'pointer' }}>
+                      {c === 4
+                        ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, color: v === 'Active' ? 'var(--gl-success-500)' : 'var(--gl-warning-500)', background: `color-mix(in srgb, ${v === 'Active' ? 'var(--gl-success-500)' : 'var(--gl-warning-500)'} 16%, transparent)` }}>{v}</span>
+                        : v}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--gl-fg-3)', lineHeight: 1.5 }}>
+          Selected <strong style={{ color: 'var(--gl-fg-1)' }}>{GCOLS[sel.c]}</strong> · row {sel.r + 1}. {editable ? 'EditableTable' : 'ReadableTable'} columns flow {rtl ? 'right-to-left' : 'left-to-right'}; <Kbd>→</Kbd> walks to the visually-right cell either way.
+        </div>
+      </div>
+      <KeyLog log={log} hint="Click the grid, press arrows" />
+    </div>
+  );
+}
+
+/* ─────────────────────────  Flutter reference  ───────────────────────── */
+const FLUTTER_SHARED = `// One direction-aware helper, shared by every component's key handler.
+// Resolves a horizontal arrow to a logical index STEP, mirroring in RTL.
+int horizontalStep(LogicalKeyboardKey key, TextDirection dir) {
+  final isRight = key == LogicalKeyboardKey.arrowRight;
+  final visual  = isRight ? 1 : -1;            // which way the key points
+  final rtl     = dir == TextDirection.rtl;    // index axis is mirrored
+  return rtl ? -visual : visual;               // +1 = next index, -1 = prev index
+}`;
+
+const FLUTTER_TABS = `// browser_style_tab_bar.dart — _handleKey
+final dir = Directionality.of(context);
+if (e.logicalKey == LogicalKeyboardKey.arrowRight ||
+    e.logicalKey == LogicalKeyboardKey.arrowLeft) {
+  ni = (i + horizontalStep(e.logicalKey, dir)).clamp(0, ord.length - 1);
+}
+// Home/End stay logical (first/last) — they are direction-agnostic by name.`;
+
+const FLUTTER_GRID = `// editable_table.dart / readable_table.dart — _onKey
+final dir = Directionality.of(context);
+if (k == LogicalKeyboardKey.arrowLeft || k == LogicalKeyboardKey.arrowRight) {
+  return _nav(() => c.moveSelection(0, horizontalStep(k, dir)));   // was: -1 / +1 hardcoded
+}`;
+
+const FLUTTER_TREE = `// tree.dart — _onKey. In RTL the indent mirrors, so "into" flips.
+final intoChildren = horizontalStep(k, Directionality.of(context)) > 0;
+if (k == LogicalKeyboardKey.arrowRight || k == LogicalKeyboardKey.arrowLeft) {
+  intoChildren ? _controller.focusInto() : _controller.focusOut();
+  return KeyEventResult.handled;
+}`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  const [dir, setDir] = useState('ltr');
+  const rtl = dir === 'rtl';
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="01" title="Keyboard shortcut directions"
+        requirement="Each arrow key maps to the correct visual direction across BrowserStyleTabBar, Tree, EditableTable & ReadableTable — verified in both LTR and RTL."
+        theme={theme} setTheme={setTheme}
+        right={<Segmented value={dir} onChange={setDir} options={[{ value: 'ltr', label: 'LTR' }, { value: 'rtl', label: 'RTL · عربي' }]} ariaLabel="Direction" />} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="The rule." tone="info">
+            A horizontal arrow is a request to move in a <strong>visual</strong> direction. Selection state is stored as a logical index, and in RTL that index axis is mirrored on screen — so the fix is to flip the step in RTL. Flip the <strong>Direction</strong> toggle at the top-right and watch every <Kbd>→</Kbd> keep moving things to the right.
+          </Callout>
+        </div>
+
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>Handlers hardcoded <code>arrowRight → index +1</code>. Correct in LTR, but in RTL pressing <Kbd>→</Kbd> jumped the highlight <em>left</em>, and the Tree's <Kbd>→</Kbd> collapsed the node the user was trying to open.</>}
+            after={<>Every handler resolves the arrow through <code>horizontalStep(key, dir)</code>. <Kbd>→</Kbd> always moves to the element on the right; the Tree expands toward wherever its children actually render.</>} />
+        </div>
+
+        <Panel title="A · BrowserStyleTabBar" desc="Left / right move the active tab. Home / End jump to the first / last tab by their visual position.">
+          <Stage><TabsDemo rtl={rtl} /></Stage>
+        </Panel>
+
+        <Panel title="B · Tree" desc="Up / down move the cursor. The horizontal arrow toward the children expands & steps in; the other collapses & steps out — and the pair swaps under RTL because the indent mirrors.">
+          <Stage><TreeDemo rtl={rtl} /></Stage>
+        </Panel>
+
+        <Panel title="C · EditableTable" desc="Cell selection walks with the arrow keys. Columns reverse on screen under RTL, but the right arrow still selects the cell to the right.">
+          <Stage><GridDemo rtl={rtl} variant="editable" /></Stage>
+        </Panel>
+
+        <Panel title="D · ReadableTable" desc="Same direction-aware navigation in the read-only grid.">
+          <Stage><GridDemo rtl={rtl} variant="readable" /></Stage>
+        </Panel>
+
+        <Panel title="Flutter reference" desc="The same one-line helper threads Directionality through every component's existing key handler — no other logic changes.">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <CodeBlock label="Shared helper" file="key_directions.dart" code={FLUTTER_SHARED} defaultOpen />
+            <CodeBlock label="BrowserStyleTabBar" file="navigation/browser_style_tab_bar.dart" code={FLUTTER_TABS} />
+            <CodeBlock label="EditableTable + ReadableTable" file="data/editable_table.dart · readable_table.dart" code={FLUTTER_GRID} />
+            <CodeBlock label="Tree" file="data/tree.dart" code={FLUTTER_TREE} />
+          </div>
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="index.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> All phases</a>
+          <a href="phase-02-scroll-on-focus.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 02 · Scroll-on-focus <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

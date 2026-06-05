@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 08 — Tree single &amp; multi-select</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .focusable{outline:none}
+  .vp::-webkit-scrollbar{width:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .trow{user-select:none}
+  .cbx{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--gl-border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background var(--gl-dur-fast),border-color var(--gl-dur-fast)}
+  .cbx.on{background:var(--gl-blue-500);border-color:var(--gl-blue-500)}
+  .cbx.some{background:color-mix(in srgb,var(--gl-blue-500) 30%,transparent);border-color:var(--gl-blue-500)}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="24" y="26" width="14" height="14" rx="3" fill="#4A7CFF"/><path d="M27 33l3 3 5-6" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="24" y="46" width="14" height="14" rx="3" fill="#4A7CFF"/><path d="M27 53l3 3 5-6" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="24" y="66" width="14" height="14" rx="3" fill="none" stroke="#33353A" stroke-width="2.5"/><line x1="46" y1="33" x2="76" y2="33" stroke="#E8EAED" stroke-width="3"/><line x1="46" y1="53" x2="76" y2="53" stroke="#E8EAED" stroke-width="3"/><line x1="46" y1="73" x2="66" y2="73" stroke="#33353A" stroke-width="3"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Kbd, Tag } = window;
+const { useState, useMemo, useRef } = React;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+const SRC = (() => {
+  const groups = [
+    ['g1', 'Assets', 'الأصول', [['Petty Cash', '1010'], ['Bank · SNB', '1020'], ['Bank · Al Rajhi', '1030'], ['Receivables', '1110'], ['Inventory', '1210']]],
+    ['g2', 'Liabilities', 'الخصوم', [['Payables', '2010'], ['VAT Payable', '2110'], ['Accrued Salaries', '2210']]],
+    ['g3', 'Equity', 'حقوق الملكية', [['Share Capital', '3010'], ['Retained Earnings', '3020']]],
+    ['g4', 'Revenue', 'الإيرادات', [['Product Sales', '4010'], ['Service Income', '4020']]],
+  ];
+  const nodes = [];
+  groups.forEach(([gid, en, ar, kids]) => {
+    nodes.push({ id: gid, label: en, ar, depth: 0, group: true, kids: kids.map((_, i) => gid + '_' + i) });
+    kids.forEach(([kl, code], i) => nodes.push({ id: gid + '_' + i, label: kl, code, depth: 1 }));
+  });
+  return nodes;
+})();
+
+function TreeSelect({ mode }) {
+  const showChecks = mode === 'check';
+  const multi = mode === 'multi' || mode === 'check';
+  const [expanded, setExpanded] = useState({ g1: true, g2: true, g3: true, g4: true });
+  const [sel, setSel] = useState(new Set(['g1_0']));
+  const [checked, setChecked] = useState(new Set());
+  const [anchor, setAnchor] = useState('g1_0');
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef(null);
+
+  const visible = useMemo(() => {
+    const out = [];
+    SRC.forEach(n => {
+      if (n.depth === 0) out.push(n);
+      else { const p = SRC.find(g => (g.kids || []).includes(n.id)); if (p && expanded[p.id]) out.push(n); }
+    });
+    return out;
+  }, [expanded]);
+
+  const selectWith = (id, e) => {
+    const n = SRC.find(x => x.id === id);
+    if (!multi) { setSel(new Set([id])); setAnchor(id); return; }
+    const next = new Set(sel);
+    if (e.shiftKey && anchor) {
+      const a = visible.findIndex(v => v.id === anchor), b = visible.findIndex(v => v.id === id);
+      if (a >= 0 && b >= 0) { next.clear(); const [lo, hi] = [Math.min(a, b), Math.max(a, b)]; for (let i = lo; i <= hi; i++) next.add(visible[i].id); }
+    } else if (e.metaKey || e.ctrlKey) { next.has(id) ? next.delete(id) : next.add(id); setAnchor(id); }
+    else { next.clear(); next.add(id); setAnchor(id); }
+    setSel(next);
+  };
+
+  // checkbox: branch toggles whole subtree of leaves
+  const leavesOf = (n) => n.group ? (n.kids || []) : [n.id];
+  const checkState = (n) => {
+    const ls = leavesOf(n); const on = ls.filter(l => checked.has(l)).length;
+    return on === 0 ? 'none' : on === ls.length ? 'all' : 'some';
+  };
+  const toggleCheck = (n) => {
+    const ls = leavesOf(n); const next = new Set(checked);
+    const st = checkState(n);
+    if (st === 'all') ls.forEach(l => next.delete(l)); else ls.forEach(l => next.add(l));
+    setChecked(next);
+  };
+
+  const cursor = anchor;
+  const onKey = (e) => {
+    const idx = visible.findIndex(v => v.id === cursor);
+    if (e.key === 'ArrowDown') { e.preventDefault(); const n = visible[clamp(idx + 1, 0, visible.length - 1)]; if (e.shiftKey && multi) selectWith(n.id, { shiftKey: true }); else { setAnchor(n.id); if (!multi) setSel(new Set([n.id])); } }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); const n = visible[clamp(idx - 1, 0, visible.length - 1)]; if (e.shiftKey && multi) selectWith(n.id, { shiftKey: true }); else { setAnchor(n.id); if (!multi) setSel(new Set([n.id])); } }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); const c = visible[idx]; if (c.group && !expanded[c.id]) setExpanded(s => ({ ...s, [c.id]: true })); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); const c = visible[idx]; if (c.group && expanded[c.id]) setExpanded(s => ({ ...s, [c.id]: false })); }
+    else if (e.key === ' ') { e.preventDefault(); const c = visible[idx]; if (showChecks) toggleCheck(c); else selectWith(c.id, { metaKey: true }); }
+    else if ((e.metaKey || e.ctrlKey) && (e.key === 'a' || e.key === 'A') && multi) { e.preventDefault(); setSel(new Set(visible.map(v => v.id))); }
+    else if (e.key === 'Escape') { setSel(new Set()); }
+  };
+
+  const activeSet = showChecks ? checked : sel;
+  const selectedNodes = visible.filter(v => sel.has(v.id));
+  const checkedLeaves = SRC.filter(n => !n.group && checked.has(n.id));
+  const summary = showChecks ? checkedLeaves : selectedNodes;
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 230px', gap: 18, alignItems: 'start' }}>
+      <div>
+        <div ref={wrapRef} tabIndex={0} className="focusable vp" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={onKey}
+          style={{ border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', background: 'var(--gl-bg)', maxHeight: 340, overflowY: 'auto', padding: '6px 0', boxShadow: focused ? 'inset 0 0 0 2px color-mix(in srgb, var(--gl-blue-500) 50%, transparent)' : 'none' }}>
+          {visible.map(n => {
+            const isSel = sel.has(n.id);
+            const open = n.group && expanded[n.id];
+            const cs = showChecks ? checkState(n) : 'none';
+            const isCursor = n.id === cursor;
+            return (
+              <div key={n.id} className="trow" onClick={(e) => selectWith(n.id, e)}
+                style={{ display: 'flex', alignItems: 'center', gap: 9, height: 36, paddingInlineStart: 12 + n.depth * 22, paddingInlineEnd: 12, cursor: 'pointer',
+                  background: isSel ? 'color-mix(in srgb, var(--gl-blue-500) 14%, transparent)' : isCursor && focused ? 'color-mix(in srgb, var(--gl-fg-1) 5%, transparent)' : 'transparent',
+                  boxShadow: isSel ? 'inset 2px 0 0 var(--gl-blue-500)' : 'none', color: isSel ? 'var(--gl-fg-1)' : 'var(--gl-fg-2)' }}>
+                {showChecks && <div className={'cbx' + (cs === 'all' ? ' on' : cs === 'some' ? ' some' : '')} onClick={(e) => { e.stopPropagation(); toggleCheck(n); }}>{cs === 'all' ? <GLIcon name="check" size={12} color="#fff" /> : cs === 'some' ? <GLIcon name="minus" size={12} color="#fff" /> : null}</div>}
+                {n.group
+                  ? <span onClick={(e) => { e.stopPropagation(); setExpanded(s => ({ ...s, [n.id]: !s[n.id] })); }} style={{ display: 'flex', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--gl-dur-base)', color: 'var(--gl-fg-3)' }}><GLIcon name="chevR" size={14} /></span>
+                  : <span style={{ width: 14 }} />}
+                <GLIcon name={n.group ? (open ? 'folderOpen' : 'folder') : 'doc'} size={15} color={isSel ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)'} />
+                {n.code && <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-4)', minWidth: 34 }}>{n.code}</span>}
+                <span style={{ fontSize: 13, fontWeight: isSel ? 600 : 500 }}>{n.label}</span>
+                {n.ar && <span style={{ fontFamily: 'var(--gl-font-arabic)', fontSize: 12.5, color: 'var(--gl-fg-3)', marginInlineStart: 'auto' }}>{n.ar}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 11, fontSize: 12.5, color: 'var(--gl-fg-3)', lineHeight: 1.5 }}>
+          {mode === 'single' && <>Single-select: one node at a time. <Kbd>↑</Kbd><Kbd>↓</Kbd> move, <Kbd>→</Kbd><Kbd>←</Kbd> expand/collapse.</>}
+          {mode === 'multi' && <>Multi-select: <Kbd>⇧</Kbd>-click a range, <Kbd>⌘</Kbd>/<Kbd>Ctrl</Kbd>-click to toggle, <Kbd>⇧</Kbd>+<Kbd>↑</Kbd>/<Kbd>↓</Kbd> to extend, <Kbd>⌘A</Kbd> all.</>}
+          {mode === 'check' && <>Checkbox multi-select: click a box; a folder checks its whole subtree (tri-state). <Kbd>Space</Kbd> toggles the cursor row.</>}
+        </div>
+      </div>
+      {/* selection summary → group action */}
+      <div style={{ background: 'var(--gl-surface)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', overflow: 'hidden' }}>
+        <div style={{ padding: '10px 13px', borderBottom: '1px solid var(--gl-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--gl-fg-2)' }}>Selection</span>
+          <Tag tone={summary.length ? 'blue' : 'neutral'}>{summary.length}</Tag>
+        </div>
+        <div style={{ padding: summary.length ? '8px 0' : '16px 13px', maxHeight: 232, overflowY: 'auto' }}>
+          {!summary.length ? <span style={{ fontSize: 12, color: 'var(--gl-fg-4)' }}>Nothing selected</span>
+            : summary.map(n => <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 13px', fontSize: 12.5, color: 'var(--gl-fg-1)' }}><GLIcon name={n.group ? 'folder' : 'doc'} size={13} color="var(--gl-blue-500)" />{n.label}</div>)}
+        </div>
+        {summary.length > 0 && <div style={{ padding: 10, borderTop: '1px solid var(--gl-border)', display: 'flex', gap: 8 }}>
+          <DSButton size="sm" variant="secondary" icon="copy">Export</DSButton>
+          <DSButton size="sm" variant="danger" icon="trash">Delete</DSButton>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+function SelectPanel() {
+  const [mode, setMode] = useState('single');
+  return (
+    <Panel title="Selection modes" desc="The same Tree, three selection modes. Single picks one node; multi adds Shift-range and Ctrl/⌘-toggle; checkbox mode layers tri-state checks (a folder toggles its whole subtree). The selection drives the group-action panel on the right."
+      controls={<Segmented value={mode} onChange={setMode} options={[{ value: 'single', label: 'Single' }, { value: 'multi', label: 'Multi' }, { value: 'check', label: 'Checkbox' }]} />}>
+      <Stage><TreeSelect mode={mode} key={mode} /></Stage>
+    </Panel>
+  );
+}
+
+const F_CODE = `// tree_models.dart — selection mode independent of the checkbox layer.
+enum TreeSelectionMode { none, single, multi }
+
+// tree_controller.dart — a selection SET + anchor, plus modifier-aware entry.
+final Set<TreeNodeId> _selection = {};
+TreeNodeId? _anchor;                 // for Shift-range
+
+Set<TreeNodeId> get selection => {..._selection};
+List<TreeNode<T>> get selectedNodes => [          // visible order, for group ops
+  for (final r in visibleRows()) if (_selection.contains(r.node.id)) r.node,
+];
+
+void selectWith(TreeNodeId id, {bool toggle = false, bool range = false}) {
+  if (selectionMode == TreeSelectionMode.single) return select(id);
+  if (range && _anchor != null) {
+    final rows = visibleRows();
+    final a = rows.indexWhere((r) => r.node.id == _anchor);
+    final b = rows.indexWhere((r) => r.node.id == id);
+    _selection..clear()..addAll([
+      for (var i = min(a,b); i <= max(a,b); i++)
+        if (rows[i].node.selectable) rows[i].node.id,
+    ]);
+  } else if (toggle) {
+    _selection.contains(id) ? _selection.remove(id) : _selection.add(id);
+    _anchor = id;
+  } else {
+    _selection..clear()..add(id); _anchor = id;
+  }
+  _selected = id; _focused = id;
+  notifyListeners();
+}
+// View maps Shift→range, Ctrl/⌘→toggle; ⌘A → selectAllVisible(); the existing
+// tri-state checkbox column stays available alongside in multi mode.`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="08" title="Tree single &amp; multi-select"
+        requirement="Allow single-select and multi-select in Tree — Shift+click range, Ctrl/⌘+click individual, or checkboxes. Selected nodes are visually indicated and available for group actions."
+        theme={theme} setTheme={setTheme} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="Pick one, a range, a scattered few, or check a subtree." tone="info">
+            Switch modes below. <strong>Single</strong> is the classic one-at-a-time. <strong>Multi</strong> adds <Kbd>⇧</Kbd>-click ranges and <Kbd>⌘</Kbd>/<Kbd>Ctrl</Kbd>-click toggles (and <Kbd>⇧</Kbd>+arrows from the keyboard). <strong>Checkbox</strong> layers tri-state checks where a folder toggles its whole subtree. Whatever's selected flows into the group-action panel.
+          </Callout>
+        </div>
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>The Tree tracked a single <code>_selected</code> id — exactly one node, no way to act on several at once.</>}
+            after={<>A <code>TreeSelectionMode</code> (none / single / multi) plus a selection set with a Shift anchor. <code>selectWith(id, toggle, range)</code> handles modifier clicks; <code>selectedNodes</code> exposes the group in visible order. The tri-state checkbox column composes on top.</>} />
+        </div>
+
+        <SelectPanel />
+
+        <Panel title="Flutter reference" desc="Mode enum in models; selection set + selectWith / selectAllVisible / clearSelection on the controller. Checkboxes (_checked) remain a separate, composable layer.">
+          <CodeBlock label="TreeSelectionMode + selectWith" file="data/tree_models.dart · tree_controller.dart" code={F_CODE} defaultOpen />
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-07-copy-rows-cells.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 07</a>
+          <a href="phase-09-tree-add-remove.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 09 · Add &amp; remove nodes <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

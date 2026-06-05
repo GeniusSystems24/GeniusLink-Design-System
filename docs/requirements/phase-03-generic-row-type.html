@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 03 — EditableTable&lt;T&gt; generic row type</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .focusable{outline:none}
+  .vp::-webkit-scrollbar{width:10px;height:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><text x="50" y="44" font-family="monospace" font-size="22" fill="#4A7CFF" text-anchor="middle" font-weight="bold">&lt;T&gt;</text><rect x="26" y="56" width="48" height="9" rx="2" fill="#33353A"/><rect x="26" y="69" width="48" height="9" rx="2" fill="#1DB88A" opacity="0.4"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Kbd, Tag } = window;
+const { useState, useRef, useEffect, useLayoutEffect } = React;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/* ════════════════════════════════════════════════════════════
+   The typed row value. Rows are NOT a Map<String,String> — each
+   row is a strongly-typed Account. Columns read it with value(a)
+   and write it with setValue(a, raw) → a NEW immutable Account.
+   ════════════════════════════════════════════════════════════ */
+class Account {
+  constructor({ code, nameEn, type, qty, price }) {
+    this.code = code; this.nameEn = nameEn; this.type = type; this.qty = qty; this.price = price;
+  }
+  copyWith(p) { return new Account({ ...this, ...p }); }
+  get total() { return this.qty * this.price; }
+}
+const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const parseNum = (s) => { const n = parseFloat(String(s).replace(/,/g, '')); return isFinite(n) ? n : 0; };
+
+const TYPES = ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'];
+const TYPE_TONE = { Asset: 'var(--gl-blue-500)', Liability: 'var(--gl-warning-500)', Equity: 'var(--gl-success-500)', Revenue: 'var(--gl-success-500)', Expense: 'var(--gl-danger-500)' };
+
+/* the column schema is generic over Account — value/setValue ARE the contract */
+const COLS = [
+  { key: 'code', label: 'Code', w: 92, mono: true, kind: 'text',
+    value: (a) => a.code, setValue: (a, v) => a.copyWith({ code: v }) },
+  { key: 'nameEn', label: 'Account', w: 184, kind: 'text',
+    value: (a) => a.nameEn, setValue: (a, v) => a.copyWith({ nameEn: v }) },
+  { key: 'type', label: 'Type', w: 132, kind: 'enum', opts: TYPES,
+    value: (a) => a.type, setValue: (a, v) => a.copyWith({ type: v }) },
+  { key: 'qty', label: 'Qty', w: 86, mono: true, align: 'end', kind: 'num',
+    value: (a) => String(a.qty), setValue: (a, v) => a.copyWith({ qty: parseNum(v) }) },
+  { key: 'price', label: 'Unit price', w: 120, mono: true, align: 'end', kind: 'num',
+    value: (a) => fmt(a.price), setValue: (a, v) => a.copyWith({ price: parseNum(v) }) },
+  { key: 'total', label: 'Total', w: 132, mono: true, align: 'end', kind: 'computed',
+    value: (a) => fmt(a.total) },   // no setValue → read-only / computed
+];
+const SEED = [
+  new Account({ code: '1010', nameEn: 'Petty Cash', type: 'Asset', qty: 3, price: 1400 }),
+  new Account({ code: '1020', nameEn: 'Bank · SNB', type: 'Asset', qty: 1, price: 182540 }),
+  new Account({ code: '2010', nameEn: 'Accounts Payable', type: 'Liability', qty: 2, price: 37050 }),
+  new Account({ code: '4010', nameEn: 'Sales Revenue', type: 'Revenue', qty: 4, price: 160050 }),
+];
+const isReadonly = (c) => !c.setValue;
+const isInline = (c) => c.kind === 'text' || c.kind === 'num';
+
+/* ─────────────────  Typed editable grid  ───────────────── */
+function TypedGrid({ rows, setRows, sel, setSel }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const wrapRef = useRef(null);
+  const inputRef = useRef(null);
+  const nR = rows.length, nC = COLS.length;
+  useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+
+  const focusGrid = () => wrapRef.current && wrapRef.current.focus();
+  const beginEdit = (initial) => { const c = COLS[sel.c]; if (isReadonly(c)) return; setDraft(initial != null ? initial : c.value(rows[sel.r])); setEditing(true); };
+  const commit = (move) => {
+    const c = COLS[sel.c];
+    if (!isReadonly(c)) setRows(rows.map((row, i) => i === sel.r ? c.setValue(row, draft) : row));
+    setEditing(false);
+    if (move) setSel(s => ({ r: clamp(s.r + (move.dr || 0), 0, nR - 1), c: clamp(s.c + (move.dc || 0), 0, nC - 1) }));
+    setTimeout(focusGrid, 0);
+  };
+  const onKey = (e) => {
+    if (editing) {
+      if (e.key === 'Enter') { e.preventDefault(); commit({ dr: 1 }); }
+      else if (e.key === 'Tab') { e.preventDefault(); commit({ dc: e.shiftKey ? -1 : 1 }); }
+      else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); focusGrid(); }
+      return;
+    }
+    const k = e.key;
+    if (k === 'ArrowRight') { e.preventDefault(); setSel(s => ({ ...s, c: clamp(s.c + 1, 0, nC - 1) })); }
+    else if (k === 'ArrowLeft') { e.preventDefault(); setSel(s => ({ ...s, c: clamp(s.c - 1, 0, nC - 1) })); }
+    else if (k === 'ArrowDown') { e.preventDefault(); setSel(s => ({ ...s, r: clamp(s.r + 1, 0, nR - 1) })); }
+    else if (k === 'ArrowUp') { e.preventDefault(); setSel(s => ({ ...s, r: clamp(s.r - 1, 0, nR - 1) })); }
+    else if (k === 'Enter' || k === 'F2') { e.preventDefault(); const c = COLS[sel.c]; if (c.kind === 'enum') cycleEnum(); else beginEdit(); }
+    else if (k.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) { const c = COLS[sel.c]; if (isInline(c)) beginEdit(k); else if (c.kind === 'enum') cycleEnum(); }
+  };
+  const cycleEnum = () => { const c = COLS[sel.c]; const cur = c.value(rows[sel.r]); const i = c.opts.indexOf(cur); const next = c.opts[(i + 1) % c.opts.length]; setRows(rows.map((row, ri) => ri === sel.r ? c.setValue(row, next) : row)); };
+
+  const GT = COLS.map(c => c.w + 'px').join(' ');
+  const totalW = COLS.reduce((s, c) => s + c.w, 0);
+  return (
+    <div ref={wrapRef} tabIndex={0} className="focusable vp" onKeyDown={onKey}
+      style={{ overflowX: 'auto', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', outline: 'none' }}>
+      <div style={{ minWidth: totalW }}>
+        <div style={{ display: 'grid', gridTemplateColumns: GT, background: 'var(--gl-bg)' }}>
+          {COLS.map((c, ci) => (
+            <div key={c.key} style={{ padding: '9px 11px', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: ci === sel.c ? 'var(--gl-blue-500)' : 'var(--gl-fg-3)', borderBottom: '1px solid var(--gl-border-strong)', textAlign: c.align === 'end' ? 'end' : 'start', whiteSpace: 'nowrap' }}>
+              {c.label}{isReadonly(c) && <span style={{ color: 'var(--gl-fg-4)', fontWeight: 600 }}> ƒ</span>}
+            </div>
+          ))}
+        </div>
+        {rows.map((row, r) => (
+          <div key={r} style={{ display: 'grid', gridTemplateColumns: GT }}>
+            {COLS.map((c, ci) => {
+              const on = sel.r === r && sel.c === ci;
+              const isEd = on && editing;
+              const shown = c.value(row);
+              return (
+                <div key={c.key} onMouseDown={() => { if (!isEd) setSel({ r, c: ci }); }} onDoubleClick={() => { setSel({ r, c: ci }); if (c.kind === 'enum') cycleEnum(); else beginEdit(); }}
+                  style={{ height: 38, padding: isEd ? 0 : '0 11px', display: 'flex', alignItems: 'center', justifyContent: c.align === 'end' ? 'flex-end' : 'flex-start',
+                    borderInlineEnd: '1px solid var(--gl-border)', borderBottom: '1px solid var(--gl-border)',
+                    background: on ? 'color-mix(in srgb, var(--gl-blue-500) 11%, var(--gl-surface))' : 'var(--gl-surface)',
+                    boxShadow: on ? 'inset 0 0 0 2px var(--gl-blue-500)' : 'none', position: on ? 'relative' : 'static', zIndex: on ? 2 : 1,
+                    fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 12.5,
+                    color: isReadonly(c) ? 'var(--gl-fg-3)' : 'var(--gl-fg-1)', fontStyle: c.kind === 'computed' ? 'italic' : 'normal', cursor: isReadonly(c) ? 'default' : 'cell' }}>
+                  {isEd
+                    ? (c.kind === 'enum'
+                      ? null
+                      : <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit()} inputMode={c.kind === 'num' ? 'decimal' : 'text'}
+                          style={{ width: '100%', height: '100%', padding: '0 10px', background: 'var(--gl-surface)', border: 'none', outline: 'none', fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 12.5, color: 'var(--gl-fg-1)', textAlign: c.align === 'end' ? 'right' : 'left' }} />)
+                    : c.kind === 'enum'
+                      ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: TYPE_TONE[shown], background: `color-mix(in srgb, ${TYPE_TONE[shown]} 16%, transparent)` }}>{shown}</span>
+                      : shown}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* live typed-model inspector — proves rows are Account instances, not maps */
+function ModelInspector({ rows, sel }) {
+  return (
+    <div style={{ background: 'var(--gl-bg)', border: '1px solid var(--gl-border)', borderRadius: 'var(--gl-radius-md)', overflow: 'hidden' }}>
+      <div style={{ padding: '9px 13px', borderBottom: '1px solid var(--gl-border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <GLIcon name="fileCode" size={15} color="var(--gl-blue-500)" />
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--gl-fg-2)' }}>Live <code style={{ fontFamily: 'var(--gl-font-mono)' }}>List&lt;Account&gt;</code></span>
+      </div>
+      <pre style={{ margin: 0, padding: '12px 14px', fontFamily: 'var(--gl-font-mono)', fontSize: 11.5, lineHeight: 1.65, color: 'var(--gl-fg-2)', overflowX: 'auto' }}>{rows.map((a, i) =>
+        <div key={i} style={{ background: i === sel.r ? 'color-mix(in srgb, var(--gl-blue-500) 12%, transparent)' : 'transparent', borderRadius: 4, padding: '1px 5px', margin: '0 -5px' }}>
+          <span style={{ color: 'var(--gl-blue-500)' }}>Account</span>(code: <span style={{ color: 'var(--gl-success-500)' }}>'{a.code}'</span>, qty: <span style={{ color: 'var(--gl-warning-500)' }}>{a.qty}</span>, price: <span style={{ color: 'var(--gl-warning-500)' }}>{a.price}</span>)
+        </div>
+      )}</pre>
+    </div>
+  );
+}
+
+const F_API = `// ── editable_table_models.dart ──────────────────────────────────────
+// The column is generic over the row value T. value() reads the cell from
+// the typed row; setValue() returns a NEW row with the edit applied — so
+// undo/redo snapshots are just List<T> copies (rows are immutable).
+class EditableColumn<T> {
+  final String label;
+  final double width;
+  final CellAlign align;
+  final EditableColumnType type;
+
+  final String Function(T row) value;            // read   — typed, no casts
+  final T Function(T row, String raw)? setValue; // write  — null ⇒ read-only
+
+  const EditableColumn({
+    required this.label,
+    required this.value,
+    this.setValue,
+    this.width = 160,
+    this.align = CellAlign.start,
+    this.type = EditableColumnType.text,
+  });
+
+  bool get isReadOnly => setValue == null || type == EditableColumnType.computed;
+}
+
+// Backwards-compatible default: the old Map-backed table is just T = EditableRow.
+typedef EditableRow = Map<String, String>;
+EditableColumn<EditableRow> mapColumn(String key, String label) => EditableColumn(
+  label: label,
+  value:    (r) => r[key] ?? '',
+  setValue: (r, v) => {...r, key: v},
+);`;
+
+const F_USE = `// ── host code — fully typed, zero casting ───────────────────────────
+final table = EditableTable<Account>(
+  rows: accounts,                         // List<Account>
+  columns: [
+    EditableColumn<Account>(label: 'Code',
+      value: (a) => a.code,  setValue: (a, v) => a.copyWith(code: v)),
+    NumericColumn<Account>(label: 'Qty',
+      value: (a) => '\${a.qty}', setValue: (a, v) => a.copyWith(qty: int.parse(v))),
+    NumericColumn<Account>(label: 'Unit price',
+      value: (a) => a.price.toStringAsFixed(2),
+      setValue: (a, v) => a.copyWith(price: double.parse(v))),
+    ComputedColumn<Account>(label: 'Total',     // read-only — no setValue
+      value: (a) => (a.qty * a.price).toStringAsFixed(2)),
+  ],
+  onChanged: (List<Account> next) => save(next),   // typed callback
+);
+
+// Controller mirrors ReadableTable<T> exactly:
+final c = EditableTableController<Account>(columns: cols, rows: accounts);
+c.replaceRowAt(0, accounts.first.copyWith(qty: 9));  // typed ops`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  const [rows, setRows] = useState(SEED);
+  const [sel, setSel] = useState({ r: 0, c: 0 });
+  const grand = rows.reduce((s, a) => s + a.total, 0);
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="03" title="EditableTable&lt;T&gt; — generic row type"
+        requirement="Refactor EditableTable to accept a generic row type that defines the structure of the data being displayed and edited — making it reusable across contexts and data types."
+        theme={theme} setTheme={setTheme} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="A row is a typed value, not a bag of strings." tone="info">
+            Every row below is a real <code>Account</code> instance. Each column declares <code>value(a)</code> to read its cell and <code>setValue(a, raw)</code> to produce a new <code>Account</code> on edit. Edit any cell (click + type, or <Kbd>Enter</Kbd>; press <Kbd>Enter</Kbd> on the Type cell to cycle) and watch the typed model on the right update — no map, no string-keyed lookups, no casting.
+          </Callout>
+        </div>
+
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>Rows were <code>Map&lt;String, String&gt;</code>. Host code read <code>row['price']</code> and parsed on every access; a typo in the key failed silently, and there was no type behind a row.</>}
+            after={<><code>EditableTable&lt;Account&gt;</code>. Columns read <code>a.price</code> and write <code>a.copyWith(...)</code> — the compiler checks every field, refactors are safe, and the same widget serves any model. The legacy map table is simply <code>T = EditableRow</code>.</>} />
+        </div>
+
+        <Panel title="Typed editable grid" desc="Editing routes through the column's setValue(row, raw) → a new immutable Account. The inspector shows the live List<Account>; the active row is highlighted in both.">
+          <Stage>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.55fr) minmax(220px,1fr)', gap: 18, alignItems: 'start' }}>
+              <div>
+                <TypedGrid rows={rows} setRows={setRows} sel={sel} setSel={setSel} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--gl-fg-3)' }}>Editing <strong style={{ color: 'var(--gl-fg-1)' }}>{COLS[sel.c].label}</strong> · {rows[sel.r].code}. <span style={{ color: 'var(--gl-fg-4)' }}>ƒ = computed (read-only)</span></span>
+                  <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 13, fontWeight: 600 }}>{fmt(grand)} <span style={{ fontSize: 10, color: 'var(--gl-fg-3)' }}>SAR</span></span>
+                </div>
+              </div>
+              <ModelInspector rows={rows} sel={sel} />
+            </div>
+          </Stage>
+        </Panel>
+
+        <Panel title="Flutter reference" desc="The generic API mirrors the kit's existing ReadableTable<T> precedent: rows are List<T>, columns carry value/setValue accessors, and the controller is EditableTableController<T>. Shipped as editable_table_generic.dart — a self-contained reference so the live string-map table keeps compiling during migration.">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <CodeBlock label="Generic column model" file="data/editable_table_generic.dart" code={F_API} defaultOpen />
+            <CodeBlock label="Host usage — typed, no casts" file="example" code={F_USE} />
+          </div>
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-02-scroll-on-focus.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 02</a>
+          <a href="phase-04-column-resizing.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 04 · Column resizing <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

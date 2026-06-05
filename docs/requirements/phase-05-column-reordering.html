@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Phase 05 — Column reordering</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../design_system/tokens.css" />
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:var(--gl-font-body);background:var(--gl-bg);color:var(--gl-fg-1)}
+  *{box-sizing:border-box}
+  .vp::-webkit-scrollbar{height:10px;width:10px}.vp::-webkit-scrollbar-thumb{background:var(--gl-border-strong);border-radius:6px}
+  .col-head{cursor:grab;user-select:none;transition:background var(--gl-dur-fast)}
+  .col-head:hover{background:color-mix(in srgb,var(--gl-blue-500) 8%,transparent)}
+  .col-head.dragging{opacity:.4;cursor:grabbing}
+  .drop-line{position:absolute;top:0;bottom:0;width:3px;background:var(--gl-blue-500);z-index:9;border-radius:2px;box-shadow:0 0 8px var(--gl-blue-500)}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#111318"/><rect x="16" y="30" width="20" height="40" rx="3" fill="#33353A"/><rect x="40" y="30" width="20" height="40" rx="3" fill="#4A7CFF"/><rect x="64" y="30" width="20" height="40" rx="3" fill="#33353A"/><path d="M50 20v-8M46 16l4-4 4 4" fill="none" stroke="#1DB88A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M50 80v8M46 84l4 4 4-4" fill="none" stroke="#1DB88A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+</head>
+<body data-theme="">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../design_system/ds-kit.jsx"></script>
+<script type="text/babel" src="_demo.jsx"></script>
+<script type="text/babel">
+const { useTheme, Segmented, DemoHeader, DemoBody, Panel, Stage, Callout, FixNote, CodeBlock, Kbd, Tag } = window;
+const { useState, useRef } = React;
+
+const COLS0 = [
+  { key: 'code', label: 'Code', w: 88, mono: true },
+  { key: 'en', label: 'Account', w: 200 },
+  { key: 'type', label: 'Type', w: 124 },
+  { key: 'bal', label: 'Balance', w: 150, mono: true, e: true },
+  { key: 'upd', label: 'Updated', w: 130, mono: true },
+  { key: 'st', label: 'Status', w: 118 },
+];
+const ROWS = [
+  { code: '1010', en: 'Petty Cash', type: 'Asset', bal: '4,200.00', upd: '2024-12-01', st: 'Active' },
+  { code: '1020', en: 'Bank · SNB', type: 'Asset', bal: '182,540.00', upd: '2024-12-02', st: 'Active' },
+  { code: '2010', en: 'Accounts Payable', type: 'Liability', bal: '−74,100.00', upd: '2024-12-03', st: 'Open' },
+  { code: '3010', en: 'Share Capital', type: 'Equity', bal: '−500,000.00', upd: '2024-11-30', st: 'Active' },
+  { code: '4010', en: 'Sales Revenue', type: 'Revenue', bal: '−640,200.00', upd: '2024-12-04', st: 'Review' },
+];
+const TYPE_TONE = { Asset: 'var(--gl-blue-500)', Liability: 'var(--gl-warning-500)', Equity: 'var(--gl-success-500)', Revenue: 'var(--gl-success-500)', Expense: 'var(--gl-danger-500)' };
+const ST_TONE = { Active: 'var(--gl-success-500)', Open: 'var(--gl-warning-500)', Review: 'var(--gl-fg-3)' };
+const move = (arr, from, to) => { const a = arr.slice(); const [x] = a.splice(from, 1); a.splice(to, 0, x); return a; };
+
+function ReorderTable({ rtl, variant }) {
+  const editable = variant === 'editable';
+  const [order, setOrder] = useState(COLS0.map((_, i) => i));
+  const [drag, setDrag] = useState(null);     // dragged position in order[]
+  const [over, setOver] = useState(null);      // insertion slot 0..n
+  const headRef = useRef(null);
+  const cols = order.map(i => COLS0[i]);
+
+  const onDragStart = (pos, e) => { setDrag(pos); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(pos)); } catch (_) {} };
+  const onDragOverHead = (e) => {
+    e.preventDefault();
+    const cells = [...headRef.current.querySelectorAll('[data-head]')];
+    let slot = cells.length;
+    for (let i = 0; i < cells.length; i++) {
+      const r = cells[i].getBoundingClientRect();
+      const mid = r.left + r.width / 2;
+      const before = rtl ? e.clientX > mid : e.clientX < mid;
+      if (before) { slot = i; break; }
+    }
+    setOver(slot);
+  };
+  const onDrop = (e) => {
+    e.preventDefault();
+    if (drag == null || over == null) { setDrag(null); setOver(null); return; }
+    let to = over; if (to > drag) to -= 1;
+    setOrder(o => move(o, drag, to));
+    setDrag(null); setOver(null);
+  };
+  const onDragEnd = () => { setDrag(null); setOver(null); };
+
+  const GT = cols.map(c => c.w + 'px').join(' ');
+  const totalW = cols.reduce((a, c) => a + c.w, 0);
+
+  // drop indicator position = sum of widths up to slot
+  let dropLeft = null;
+  if (over != null) { dropLeft = cols.slice(0, over).reduce((a, c) => a + c.w, 0); }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }} dir="ltr">
+        <span style={{ fontSize: 12, color: 'var(--gl-fg-3)' }}>Drag a column header onto another to reorder</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--gl-font-mono)', fontSize: 11, color: 'var(--gl-fg-3)' }}>order: [{cols.map(c => c.key).join(', ')}]</span>
+          <DSButton size="sm" variant="secondary" icon="back" onClick={() => setOrder(COLS0.map((_, i) => i))}>Reset</DSButton>
+        </div>
+      </div>
+      <div className="vp" dir={rtl ? 'rtl' : 'ltr'} style={{ overflowX: 'auto', border: '1px solid var(--gl-border-strong)', borderRadius: 'var(--gl-radius-md)', background: 'var(--gl-surface)' }}>
+        <div style={{ minWidth: totalW, position: 'relative' }}>
+          {dropLeft != null && <div className="drop-line" style={{ insetInlineStart: dropLeft - 1 }} />}
+          {/* header */}
+          <div ref={headRef} onDragOver={onDragOverHead} onDrop={onDrop} style={{ display: 'grid', gridTemplateColumns: GT, background: 'var(--gl-bg)' }}>
+            {cols.map((c, pos) => (
+              <div key={c.key} data-head draggable onDragStart={(e) => onDragStart(pos, e)} onDragEnd={onDragEnd}
+                className={'col-head' + (drag === pos ? ' dragging' : '')}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 12px', borderBottom: '1px solid var(--gl-border-strong)', justifyContent: c.e ? 'flex-end' : 'flex-start', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                <GLIcon name="grip" size={13} color="var(--gl-fg-4)" />
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--gl-fg-3)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+              </div>
+            ))}
+          </div>
+          {/* rows */}
+          {ROWS.map((row, r) => (
+            <div key={r} style={{ display: 'grid', gridTemplateColumns: GT }}>
+              {cols.map((c) => {
+                const v = row[c.key];
+                const neg = c.key === 'bal' && String(v).startsWith('−');
+                const isDragCol = drag != null && cols[drag] && cols[drag].key === c.key;
+                return (
+                  <div key={c.key}
+                    style={{ height: 40, padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: c.e ? 'flex-end' : 'flex-start',
+                      borderInlineEnd: '1px solid var(--gl-border)', borderBottom: '1px solid var(--gl-border)',
+                      background: isDragCol ? 'color-mix(in srgb, var(--gl-blue-500) 6%, transparent)' : 'transparent',
+                      fontFamily: c.mono ? 'var(--gl-font-mono)' : 'var(--gl-font-body)', fontSize: 12.5,
+                      color: neg ? 'var(--gl-danger-500)' : 'var(--gl-fg-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {c.key === 'type' ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: TYPE_TONE[v], background: `color-mix(in srgb, ${TYPE_TONE[v]} 16%, transparent)`, whiteSpace: 'nowrap' }}>{v}</span>
+                      : c.key === 'st' ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999, color: ST_TONE[v], background: `color-mix(in srgb, ${ST_TONE[v]} 15%, transparent)`, whiteSpace: 'nowrap' }}>{v}</span>
+                        : <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReorderPanel({ rtl }) {
+  const [variant, setVariant] = useState('readable');
+  return (
+    <Panel title={variant === 'readable' ? 'ReadableTable — reorderable columns' : 'EditableTable — reorderable columns'}
+      desc="Grab a header by its grip and drop it before or after another column. A blue insertion line shows where it lands; the underlying column order updates and every row follows. Works against the visual axis, so it's correct in RTL too."
+      controls={<Segmented value={variant} onChange={setVariant} options={[{ value: 'readable', label: 'Readable' }, { value: 'editable', label: 'Editable' }]} />}>
+      <Stage><ReorderTable rtl={rtl} variant={variant} /></Stage>
+    </Panel>
+  );
+}
+
+const F_CODE = `// Column order is an index list in the controller; cells read through it.
+// editable_table_controller.dart / readable_table_controller.dart
+final List<int> _order = List.generate(columns.length, (i) => i);
+List<int> get order => List.unmodifiable(_order);
+EditableColumn<T> columnAt(int visualIndex) => columns[_order[visualIndex]];
+
+void moveColumn(int from, int to) {
+  if (from == to) return;
+  final id = _order.removeAt(from);
+  _order.insert(to, id);
+  notifyListeners();          // header + all rows rebuild from _order
+}
+
+// The header row is a ReorderableListView laid out horizontally; Flutter gives
+// drag-and-drop + the drop indicator for free. onReorder maps the framework's
+// (oldIndex, newIndex) — which already accounts for the removed slot — to
+// moveColumn. It is direction-correct because the list itself honours
+// Directionality, so no RTL math is needed here.
+ReorderableListView(
+  scrollDirection: Axis.horizontal,
+  buildDefaultDragHandles: false,            // we use an explicit grip
+  onReorder: (oldI, newI) =>
+      controller.moveColumn(oldI, newI > oldI ? newI - 1 : newI),
+  children: [
+    for (var v = 0; v < controller.colCount; v++)
+      ReorderableDragStartListener(
+        key: ValueKey(controller.columnAt(v).label),
+        index: v,
+        child: _HeaderCell(column: controller.columnAt(v)),
+      ),
+  ],
+);`;
+
+function App() {
+  const [theme, setTheme] = useTheme();
+  const [dir, setDir] = useState('ltr');
+  const rtl = dir === 'rtl';
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <DemoHeader phase="05" title="Column reordering"
+        requirement="Drag-and-drop column headers in ReadableTable & EditableTable to move a column to a new position; the underlying column order updates accordingly."
+        theme={theme} setTheme={setTheme}
+        right={<Segmented value={dir} onChange={setDir} options={[{ value: 'ltr', label: 'LTR' }, { value: 'rtl', label: 'RTL · عربي' }]} ariaLabel="Direction" />} />
+      <DemoBody>
+        <div style={{ marginBottom: 30 }}>
+          <Callout title="Drag a header to a new slot." tone="info">
+            Each header has a grip — grab it and drag across the other columns. A blue insertion line previews the drop position; release to commit. The order array under the table updates live, and every body cell moves with its column. In RTL the geometry mirrors, so dropping "to the right of Type" still lands where you'd expect.
+          </Callout>
+        </div>
+        <div style={{ marginBottom: 34 }}>
+          <FixNote
+            before={<>Column order was the literal order of the <code>columns</code> list — fixed at build time, no way for a user to rearrange.</>}
+            after={<>An <code>order</code> index list lives in the controller. <code>moveColumn(from, to)</code> reorders it; header and rows read <code>columnAt(visualIndex)</code>, so a drop rearranges the whole grid at once.</>} />
+        </div>
+
+        <ReorderPanel rtl={rtl} />
+
+        <Panel title="Flutter reference" desc="A horizontal ReorderableListView drives the header; the framework supplies the drag, drop indicator, and RTL-correct geometry. We only map its indices to moveColumn.">
+          <CodeBlock label="moveColumn + reorderable header" file="data/editable_table.dart · readable_table.dart" code={F_CODE} defaultOpen />
+        </Panel>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 22, borderTop: '1px solid var(--gl-border)' }}>
+          <a href="phase-04-column-resizing.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-fg-3)', textDecoration: 'none' }}><GLIcon name="back" size={15} /> Phase 04</a>
+          <a href="phase-06-readable-column-types.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--gl-blue-500)', textDecoration: 'none' }}>Phase 06 · Column types <GLIcon name="chevR" size={15} /></a>
+        </div>
+      </DemoBody>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
