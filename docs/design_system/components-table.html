@@ -646,6 +646,101 @@ function App() {
       <Section title="Column types" desc="Each kind is an ergonomic subclass of EditableColumn — the Flutter API mirrors this exactly." cols="1fr">
         <div style={{ gridColumn: '1 / -1' }}><TypeRef /></div>
       </Section>
+      <Section title="Column resizing — Phase 04 · تغيير عرض الأعمدة" desc="Drag the ⟷ handle at the right edge of any column header to resize it live. grid-template-columns reflowss on every pointer-move. RTL-aware — the handle sits at logical inline-end." cols="repeat(auto-fill, minmax(280px, 1fr))">
+        <Spec label="Interaction">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Hover reveals the full-height blue resize bar</li>
+            <li><strong>Pointer capture</strong> keeps tracking outside the element during drag</li>
+            <li>Column header tints blue while dragging</li>
+            <li>Grid reflowss on every <code style={{ fontFamily: 'var(--gl-font-mono)' }}>pointermove</code> — no lag</li>
+          </ul>
+        </Spec>
+        <Spec label="Constraints">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Min width: <strong>64 px</strong></li>
+            <li>Max width: <strong>460 px</strong></li>
+            <li>Clamped on every move — can't drag past limits</li>
+            <li>Other columns unaffected (non-distributing)</li>
+          </ul>
+        </Spec>
+        <Spec label="RTL">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Handle uses <code style={{ fontFamily: 'var(--gl-font-mono)' }}>inset-inline-end</code></li>
+            <li>Pointer delta negated in RTL — dragging right always widens</li>
+          </ul>
+        </Spec>
+        <Spec label="See also">
+          <a href="../requirements/phase-04-column-resizing.html" target="_blank" style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>requirements/phase-04-column-resizing ↗</a>
+        </Spec>
+      </Section>
+
+      <Section title="Column reordering — Phase 05 · إعادة ترتيب الأعمدة" desc="Drag a column header to a new position. A blue insertion line previews the drop slot at the nearest boundary. Drop commits the new order; dragging away cancels." cols="repeat(auto-fill, minmax(280px, 1fr))">
+        <Spec label="Drag">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>HTML5 drag-and-drop on the header row</li>
+            <li>Dragged header fades to 40 % opacity</li>
+            <li>Pointer tracks the nearest slot boundary continuously</li>
+          </ul>
+        </Spec>
+        <Spec label="Drop indicator">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>3 px blue vertical line between column headers</li>
+            <li>Box-shadow glow visible on dark backgrounds</li>
+            <li>Updates in real time as the pointer moves</li>
+          </ul>
+        </Spec>
+        <Spec label="RTL">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Slot calculation reverses <code style={{ fontFamily: 'var(--gl-font-mono)' }}>getBoundingClientRect</code> for RTL</li>
+            <li>Drop-line rendered at the correct logical position in both directions</li>
+          </ul>
+        </Spec>
+        <Spec label="See also">
+          <a href="../requirements/phase-05-column-reordering.html" target="_blank" style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>requirements/phase-05-column-reordering ↗</a>
+        </Spec>
+      </Section>
+
+      <Section title="ReadableTable column types — Phase 06 · أنواع أعمدة القراءة" desc="Seven typed display-column factories — each sub-classes ReadableColumn with its own render function and sortKey accessor. Columns compose: one cell can mix types (e.g. text with Arabic subtitle)." cols="repeat(auto-fill, minmax(260px, 1fr))">
+        <Spec label="text">Multi-line: primary label + optional Arabic subtitle. Sort key: primary string.</Spec>
+        <Spec label="number">Locale-grouped (1,234.00); negatives coloured red. Sort key: raw number.</Spec>
+        <Spec label="enumBadge">Coloured pill from a palette map. Sort key: enum string — alphabetic.</Spec>
+        <Spec label="date / time">ISO-8601 monospaced. Lexicographic sort is correct for standard ISO dates.</Spec>
+        <Spec label="color">16 × 16 swatch chip + hex string. Sort key: hex value.</Spec>
+        <Spec label="progress">Proportional fill bar + percentage label. Sort key: 0–1 float.</Spec>
+        <Spec label="link">Underlined anchor text. Sort key: display label.</Spec>
+        <Spec label="See also">
+          <a href="../requirements/phase-06-readable-column-types.html" target="_blank" style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>requirements/phase-06-readable-column-types ↗</a>
+        </Spec>
+      </Section>
+
+      <Section title="Copy rows & cells — Phase 07 · نسخ الصفوف والخلايا" desc="Multi-select rows or a rectangular cell block, then copy to the OS clipboard as tab-separated values (TSV). Pastes cleanly into Excel, Numbers, Sheets and VS Code." cols="repeat(auto-fill, minmax(280px, 1fr))">
+        <Spec label="Row mode">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Click → select row (clears previous)</li>
+            <li>Shift+Click → range-extend from anchor</li>
+            <li>Ctrl / ⌘+Click → toggle individual row</li>
+            <li>⌘C copies column headers + all selected rows as TSV</li>
+          </ul>
+        </Spec>
+        <Spec label="Cell mode">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Click → select single cell</li>
+            <li>Shift+Click → rectangular block from anchor</li>
+            <li>⌘C copies the block (rows = <code style={{ fontFamily: 'var(--gl-font-mono)' }}>\n</code>, cells = <code style={{ fontFamily: 'var(--gl-font-mono)' }}>\t</code>)</li>
+          </ul>
+        </Spec>
+        <Spec label="Clipboard format">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>TSV — tab-separated cells, newline-separated rows</li>
+            <li>Literal tabs / newlines in cell values replaced with a space</li>
+            <li>Tested with Excel, Numbers, Sheets and VS Code</li>
+          </ul>
+        </Spec>
+        <Spec label="See also">
+          <a href="../requirements/phase-07-copy-rows-cells.html" target="_blank" style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>requirements/phase-07-copy-rows-cells ↗</a>
+        </Spec>
+      </Section>
+
       <Section title="Mobile — stacked cards" desc="Below the md breakpoint the grid becomes editable cards. Tap + Add or the ✎ pencil to open a bottom-sheet form; the 🗑 trash opens a confirmation dialog." cols="1fr">
         <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}><MobileCards /></div>
       </Section>

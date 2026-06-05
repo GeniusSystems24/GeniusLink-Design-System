@@ -189,6 +189,40 @@ function App() {
         {FEATURES.map((f) => <FeatureCard key={f.title} {...f} />)}
       </Section>
 
+      <Section title="Selection — Phase 08 · التحديد" desc="Single-click selects one node; Shift+Click range-extends; Ctrl / ⌘+Click toggles individual nodes. Group rows carry a tri-state checkbox: empty, partial (some descendants) or checked (all descendants)." cols="repeat(auto-fill, minmax(320px, 1fr))">
+        {[
+          { icon: 'user', title: 'Single-select', ar: 'تحديد فردي',
+            body: 'Clicking any row selects it and deselects the previously selected row automatically. Works on both group rows and leaf rows.' },
+          { icon: 'people', title: 'Multi-select', ar: 'تحديد متعدد',
+            body: 'Ctrl / ⌘+Click toggles individual nodes independently of the current selection. Shift+Click extends the selection from the last anchor row to the clicked row, covering every visible node in between.' },
+          { icon: 'grid', title: 'Tri-state checkboxes', ar: 'مربعات ثلاثية الحالة',
+            body: 'A group row shows: empty (none of its descendants selected), partial / indeterminate (some selected), or checked (all selected). Clicking a partial or unchecked parent selects all its descendants; clicking a fully-checked parent deselects all.' },
+          { icon: 'keyboard', title: 'Keyboard', ar: 'لوحة المفاتيح',
+            body: 'Space toggles the focused row\'s selection state. Shift+↑↓ extends the selection up or down one row. All existing navigation shortcuts (↑↓←→, Home, End, /, ?) remain active.' },
+        ].map(f => <FeatureCard key={f.title} {...f} />)}
+        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
+          <a href="../requirements/phase-08-tree-selection.html" target="_blank"
+             style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>requirements/phase-08-tree-selection ↗</a>
+        </div>
+      </Section>
+
+      <Section title="Add & remove nodes — Phase 09 · إضافة وحذف العقد" desc="Add child or sibling nodes via toolbar buttons, a right-click context menu, or keyboard shortcuts. Inline rename on F2 or double-click. Delete with Backspace / Delete or from the context menu." cols="repeat(auto-fill, minmax(320px, 1fr))">
+        {[
+          { icon: 'plus', title: 'Add nodes', ar: 'إضافة عقد',
+            body: 'The toolbar "Add child" button inserts a new node under the focused row; "Add sibling" inserts at the same depth. Via the context menu: Add child, Add sibling above, Add sibling below. New nodes open immediately in inline-rename mode.' },
+          { icon: 'edit', title: 'Inline rename', ar: 'إعادة التسمية',
+            body: 'Double-click any row label, or press F2 while a row is focused, to enter rename mode. An input field replaces the label in place. Enter or blur commits; Escape cancels and restores the original name.' },
+          { icon: 'trash', title: 'Remove nodes', ar: 'حذف عقد',
+            body: 'Press Backspace or Delete on the focused row to remove it and its entire subtree. The context menu shows a danger-coloured Delete entry. Groups with children show a confirmation step before deletion.' },
+          { icon: 'command', title: 'Context menu', ar: 'قائمة السياق',
+            body: 'Right-click any row to open a context menu: Add child · Add sibling above · Add sibling below · Rename · Delete (danger). The menu tracks the pointer and closes on outside-click or Escape.' },
+        ].map(f => <FeatureCard key={f.title} {...f} />)}
+        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
+          <a href="../requirements/phase-09-tree-add-remove.html" target="_blank"
+             style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>requirements/phase-09-tree-add-remove ↗</a>
+        </div>
+      </Section>
+
       <Section title="Generic value type · نوع قيمة عام" desc="In the Flutter library the tree is TreeNode<T> — every node carries a strongly-typed value, so row code reads node.value with no casts. The same recursive tree, search and keyboard model drive completely different domains just by swapping the value type and the row renderer. The two live examples below prove it.">
         <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
           {[

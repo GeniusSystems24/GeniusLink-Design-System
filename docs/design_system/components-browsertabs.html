@@ -31,6 +31,39 @@ function App() {
       <Section title="LTR & RTL" desc="The same component mirrored — pinned anchor, separators, close buttons, overflow chevrons and the + button all flip with direction. The context menu opens at the cursor in both directions." cols="1fr">
         <div style={{ gridColumn: '1 / -1' }} dir="rtl"><BrowserStyleTabBar tabsState={[{ id: 11, title: 'دليل الحسابات', icon: 'ledger', pinned: true }, { id: 12, title: 'قيد افتتاحي — JV-2024-0042', icon: 'doc', dirty: true }, { id: 13, title: 'لوحة التحكم', icon: 'chart' }, { id: 14, title: 'ميزان المراجعة — الربع الثالث', icon: 'ledger' }]} /></div>
       </Section>
+      <Section title="Tab state preservation — Phase 10 · حفظ حالة التبويبات" desc="IndexedStack mounts every tab page exactly once and keeps inactive pages hidden with CSS — scroll position, form values, counters and in-flight async data all survive tab switches without re-mounting." cols="repeat(auto-fill, minmax(280px, 1fr))">
+        <Spec label="How it works">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>All tab pages are rendered in the DOM simultaneously on first open</li>
+            <li>Inactive pages hidden via <code style={{ fontFamily: 'var(--gl-font-mono)' }}>display:none</code> — not unmounted</li>
+            <li>React's reconciler never sees a component disappear: zero mount events on switch</li>
+            <li>Flutter equivalent: <code style={{ fontFamily: 'var(--gl-font-mono)' }}>IndexedStack</code> + <code style={{ fontFamily: 'var(--gl-font-mono)' }}>AutomaticKeepAliveClientMixin</code></li>
+          </ul>
+        </Spec>
+        <Spec label="What is preserved">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Scroll position (vertical &amp; horizontal)</li>
+            <li>Form field values (text, checkbox, select)</li>
+            <li>Component state — counters, toggles, filters</li>
+            <li>In-flight async data (no duplicate fetches)</li>
+            <li>React render-mount count stays at <strong>1</strong></li>
+          </ul>
+        </Spec>
+        <Spec label="Rebuild mode (comparison)">
+          <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
+            <li>Naïve: only the active tab is mounted</li>
+            <li>Every tab switch unmounts the old page and mounts the new one</li>
+            <li>State resets, scroll resets, data re-fetches on every return</li>
+            <li>Mount count climbs each time you revisit a tab</li>
+          </ul>
+        </Spec>
+        <Spec label="See also">
+          <a href="../requirements/phase-10-tab-state.html" target="_blank" style={{ color: 'var(--gl-blue-500)', fontSize: 13 }}>
+            requirements/phase-10-tab-state ↗
+          </a>
+        </Spec>
+      </Section>
+
       <Section title="Documentation" desc="Anatomy, states and props for the component — mirrors the DESIGN_SYSTEM.md template." cols="repeat(auto-fill, minmax(280px, 1fr))">
         <Spec label="Anatomy">
           <ol style={{ margin: 0, paddingInlineStart: 18, fontSize: 13, color: 'var(--gl-fg-2)', lineHeight: 1.7 }}>
