@@ -1,339 +1,1426 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8" />
 <title>GeniusLink Design System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="colors_and_type.css" />
 <style>
-  * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
 
   body {
+    background: var(--gl-dark-bg);
+    color: var(--gl-dark-fg-1);
+    font-family: var(--gl-font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Scrollbars ── */
+  * { scrollbar-width: thin; scrollbar-color: rgba(67,70,84,0.6) transparent; }
+  *::-webkit-scrollbar { width: 5px; height: 5px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: rgba(67,70,84,0.8); border-radius: 4px; }
+
+
+  /* ═══════════════════════════════════════════════════════
+     LANDING VIEW
+  ═══════════════════════════════════════════════════════ */
+  #view-landing {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
     background:
       radial-gradient(circle at 50% 0%, #15171E 0%, rgba(17,19,24,0) 54%),
-      var(--gl-bg);
-    color: var(--gl-fg-1);
-    font-family: var(--gl-font-arabic);
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
-
-  a { color: inherit; text-decoration: none; }
-
-  .launcher {
-    width: min(1120px, calc(100% - 40px));
-    min-height: 100vh;
-    margin: 0 auto;
-    padding: 64px 0;
-    display: grid;
-    align-content: center;
-    gap: 32px;
-  }
-
-  .header {
-    display: grid;
-    gap: 12px;
-    text-align: center;
-  }
-
-  .eyebrow {
-    color: var(--gl-blue-500);
-    font-family: var(--gl-font-body);
-    font-size: var(--gl-text-eyebrow-size);
-    font-weight: 800;
-    letter-spacing: var(--gl-text-eyebrow-tracking-loose);
-    text-transform: uppercase;
-  }
-
-  h1 {
-    margin: 0;
-    color: var(--gl-fg-1);
-    font-family: var(--gl-font-display);
-    font-size: clamp(28px, 4vw, 44px);
-    line-height: 1.15;
-    letter-spacing: 0;
-  }
-
-  .subtitle {
-    max-width: 680px;
-    margin: 0 auto;
-    color: var(--gl-fg-2);
-    font-size: var(--gl-text-lg);
-    line-height: 1.8;
-  }
-
-  .options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
-  }
-
-  .option-card {
-    position: relative;
-    overflow: hidden;
-    min-height: 320px;
-    padding: 28px;
-    border: 1px solid var(--gl-border);
-    border-radius: var(--gl-radius-lg);
-    background: linear-gradient(180deg, rgba(41,45,56,0.62), rgba(30,32,37,0.95));
-    box-shadow: var(--gl-shadow);
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 28px;
-    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-  }
-
-  .option-card::before {
-    content: "";
-    position: absolute;
-    inset-block: 28px;
-    inset-inline-start: 0;
-    width: 4px;
-    border-radius: 0 var(--gl-radius-sm) var(--gl-radius-sm) 0;
-    background: var(--gl-blue-500);
-  }
-
-  .option-card:hover,
-  .option-card:focus-visible {
-    transform: translateY(-3px);
-    border-color: var(--gl-blue-500);
-    background: linear-gradient(180deg, rgba(47,53,64,0.9), rgba(30,32,37,1));
-    outline: none;
-  }
-
-  .card-copy {
-    display: grid;
-    gap: 10px;
-  }
-
-  .card-label {
-    color: var(--gl-fg-3);
-    font-family: var(--gl-font-body);
-    font-size: var(--gl-text-eyebrow-size);
-    font-weight: 800;
-    letter-spacing: var(--gl-text-eyebrow-tracking);
-    text-transform: uppercase;
-  }
-
-  .card-title {
-    margin: 0;
-    color: var(--gl-fg-1);
-    font-family: var(--gl-font-display);
-    font-size: var(--gl-text-3xl);
-    line-height: 1.3;
-  }
-
-  .card-text {
-    margin: 0;
-    color: var(--gl-fg-2);
-    font-size: var(--gl-text-md);
-    line-height: 1.8;
-  }
-
-  .preview {
-    direction: ltr;
+      var(--gl-dark-bg);
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 122px;
+    transition: opacity 320ms ease, transform 320ms ease;
   }
 
-  .desktop-frame {
-    width: min(100%, 320px);
-    aspect-ratio: 16 / 10;
-    border: 1px solid var(--gl-border-strong);
-    border-radius: var(--gl-radius-md);
-    background: var(--gl-dark-card);
-    padding: 12px;
-    box-shadow: 0 18px 42px -22px rgba(0,0,0,0.8);
+  #view-landing.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.98);
   }
 
-  .desktop-top {
-    height: 12px;
+  .landing {
+    width: min(1080px, calc(100% - 40px));
+    padding: 72px 0;
+    display: grid;
+    gap: 40px;
+  }
+
+  /* Header */
+  .landing-header {
+    display: grid;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .landing-eyebrow {
+    color: var(--gl-blue-500);
+    font-family: var(--gl-font-body);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .landing-title {
+    font-family: var(--gl-font-display);
+    font-size: clamp(28px, 3.8vw, 44px);
+    font-weight: 800;
+    color: var(--gl-dark-fg-1);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .landing-sub {
+    max-width: 560px;
+    margin: 0 auto;
+    color: var(--gl-dark-fg-3);
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  /* Cards grid */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .card {
+    position: relative;
+    overflow: hidden;
+    padding: 26px;
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(41,45,56,0.55), rgba(30,32,37,0.95));
+    box-shadow: 0 24px 48px -18px rgba(0,0,0,0.5);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 24px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 170ms ease, border-color 170ms ease, background 170ms ease, box-shadow 170ms ease;
+    min-height: 340px;
+  }
+
+  /* Left accent bar */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset-block: 26px;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--gl-blue-500);
+    opacity: 0.7;
+    transition: opacity 170ms;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(74,124,255,0.55);
+    background: linear-gradient(180deg, rgba(47,53,66,0.9), rgba(30,32,37,1));
+    box-shadow: 0 32px 60px -20px rgba(0,0,0,0.65), 0 0 0 1px rgba(74,124,255,0.1);
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  /* Per-card accent colours */
+  .card.accent-green::before       { background: var(--gl-success-500); }
+  .card.accent-orange::before      { background: var(--gl-warning-500); }
+  .card:hover.accent-green  { border-color: rgba(29,184,138,0.45); }
+  .card:hover.accent-orange { border-color: rgba(249,115,22,0.45); }
+
+  .card-copy { display: grid; gap: 8px; }
+
+  .card-label {
+    font-family: var(--gl-font-body);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gl-dark-fg-3);
+  }
+
+  .card-title {
+    font-family: var(--gl-font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--gl-dark-fg-1);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--gl-dark-fg-3);
+    line-height: 1.7;
+  }
+
+  /* Preview mockups */
+  .preview {
     display: flex;
-    gap: 5px;
-    margin-bottom: 12px;
+    align-items: center;
+    justify-content: center;
+    min-height: 130px;
   }
 
-  .desktop-top span {
-    width: 7px;
-    height: 7px;
+  /* — DS mockup — */
+  .ds-mockup {
+    width: 100%;
+    max-width: 300px;
+    height: 130px;
+    border: 1px solid var(--gl-dark-border-strong);
+    border-radius: 8px;
+    background: var(--gl-dark-card);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+  }
+
+  .ds-sidebar {
+    border-right: 1px solid var(--gl-dark-border);
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--gl-dark-surface);
+  }
+
+  .ds-sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .ds-sidebar-gname {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--gl-dark-border-strong);
+    width: 70%;
+    margin-bottom: 2px;
+  }
+
+  .ds-sidebar-item {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(67,70,84,0.5);
+  }
+
+  .ds-sidebar-item.active {
+    background: rgba(74,124,255,0.55);
+  }
+
+  .ds-main {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .ds-topbar {
+    height: 8px;
+    border-radius: 3px;
+    background: var(--gl-dark-card-2);
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 0 5px;
+  }
+
+  .ds-badge {
+    height: 4px;
+    width: 28px;
+    border-radius: 2px;
+    background: rgba(74,124,255,0.5);
+  }
+
+  .ds-content {
+    flex: 1;
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 4px;
+    background: #0D0E12;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    overflow: hidden;
+  }
+
+  .ds-row {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(67,70,84,0.4);
+  }
+
+  .ds-row.accent { background: rgba(74,124,255,0.3); width: 60%; }
+  .ds-row.wide   { width: 90%; }
+  .ds-row.mid    { width: 70%; }
+  .ds-row.short  { width: 45%; }
+
+  .ds-swatches {
+    display: flex;
+    gap: 3px;
+    margin-top: 2px;
+  }
+
+  .ds-swatch {
+    height: 8px;
+    flex: 1;
+    border-radius: 2px;
+  }
+
+  /* — Desktop mockup — */
+  .desktop-frame {
+    width: min(100%, 290px);
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--gl-dark-border-strong);
+    border-radius: 7px;
+    background: var(--gl-dark-card);
+    padding: 10px;
+    box-shadow: 0 14px 36px -18px rgba(0,0,0,0.7);
+  }
+
+  .desktop-dots {
+    height: 10px;
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .desktop-dots span {
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--gl-border-strong);
+    background: var(--gl-dark-border-strong);
   }
 
   .desktop-grid {
     display: grid;
-    grid-template-columns: 70px 1fr;
-    gap: 10px;
-    height: calc(100% - 24px);
-  }
-
-  .desktop-nav,
-  .desktop-content,
-  .phone-screen {
-    border-radius: var(--gl-radius-sm);
-    background: var(--gl-dark-input);
+    grid-template-columns: 60px 1fr;
+    gap: 8px;
+    height: calc(100% - 20px);
   }
 
   .desktop-nav {
-    display: grid;
-    align-content: start;
-    gap: 8px;
-    padding: 10px;
+    border-radius: 4px;
+    background: var(--gl-dark-input);
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .desktop-nav i,
-  .desktop-content i,
-  .phone-screen i {
+  .desktop-content i {
     display: block;
-    height: 6px;
-    border-radius: var(--gl-radius-pill);
-    background: var(--gl-fg-3);
-    opacity: 0.7;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--gl-dark-fg-3);
+    opacity: 0.5;
   }
 
-  .desktop-nav i:first-child,
-  .phone-screen i:first-child {
-    background: var(--gl-blue-500);
-    opacity: 1;
-  }
+  .desktop-nav i:first-child { background: var(--gl-blue-500); opacity: 1; }
 
   .desktop-content {
-    padding: 14px;
+    border-radius: 4px;
+    background: var(--gl-dark-input);
+    padding: 10px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-content: start;
-    gap: 10px;
+    gap: 7px;
   }
 
   .desktop-content i:first-child {
     grid-column: 1 / -1;
-    height: 32px;
+    height: 24px;
     background: var(--gl-dark-card-2);
     opacity: 1;
   }
 
+  /* — Phone mockup — */
   .phone-frame {
-    width: 118px;
-    height: 220px;
-    padding: 10px 8px;
-    border: 1px solid var(--gl-blue-500);
+    width: 112px;
+    height: 210px;
+    padding: 10px 7px;
+    border: 1.5px solid var(--gl-blue-500);
     border-radius: 22px;
     background: #0B0C10;
-    box-shadow: 0 18px 42px -22px rgba(74,124,255,0.95);
+    box-shadow: 0 14px 36px -14px rgba(74,124,255,0.8);
   }
 
   .phone-screen {
     width: 100%;
     height: 100%;
-    padding: 18px 12px;
-    display: grid;
-    align-content: start;
-    gap: 10px;
+    border-radius: 14px;
+    background: var(--gl-dark-input);
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    overflow: hidden;
   }
+
+  .phone-screen i {
+    display: block;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--gl-dark-fg-3);
+    opacity: 0.5;
+  }
+
+  .phone-screen i:first-child { background: var(--gl-blue-500); opacity: 1; }
 
   .phone-screen i:nth-child(2) {
-    height: 42px;
+    height: 36px;
     background: var(--gl-dark-card-2);
     opacity: 1;
+    border-radius: 6px;
   }
 
-  .action {
-    justify-self: start;
+  /* CTA button at card bottom */
+  .card-action {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    min-height: 40px;
+    gap: 8px;
+    height: 36px;
     padding: 0 14px;
-    border: 1px solid rgba(74,124,255,0.5);
-    border-radius: var(--gl-radius-sm);
-    background: rgba(74,124,255,0.12);
-    color: var(--gl-blue-50);
+    border: 1px solid rgba(74,124,255,0.4);
+    border-radius: 6px;
+    background: rgba(74,124,255,0.1);
+    color: var(--gl-blue-100);
     font-family: var(--gl-font-body);
-    font-size: var(--gl-text-sm);
+    font-size: 12px;
+    font-weight: 700;
+    transition: background 140ms, border-color 140ms;
+    justify-self: start;
+  }
+
+  .card:hover .card-action {
+    background: rgba(74,124,255,0.2);
+    border-color: rgba(74,124,255,0.65);
+  }
+
+  .card.accent-green .card-action {
+    border-color: rgba(29,184,138,0.4);
+    background: rgba(29,184,138,0.08);
+    color: #A7F3D0;
+  }
+
+  .card:hover.accent-green .card-action {
+    background: rgba(29,184,138,0.16);
+    border-color: rgba(29,184,138,0.65);
+  }
+
+  .card.accent-orange .card-action {
+    border-color: rgba(249,115,22,0.4);
+    background: rgba(249,115,22,0.08);
+    color: #FED7AA;
+  }
+
+  .card:hover.accent-orange .card-action {
+    background: rgba(249,115,22,0.16);
+    border-color: rgba(249,115,22,0.65);
+  }
+
+  /* Footer */
+  .landing-footer {
+    text-align: center;
+    font-family: var(--gl-font-body);
+    font-size: 12px;
+    color: var(--gl-dark-fg-4);
+    padding-top: 8px;
+  }
+
+  @media (max-width: 860px) {
+    .cards { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+    .landing { width: calc(100% - 32px); padding: 48px 0; }
+  }
+
+
+  /* ═══════════════════════════════════════════════════════
+     BROWSER VIEW (Design System)
+  ═══════════════════════════════════════════════════════ */
+  #view-browser {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.02);
+    transition: opacity 320ms ease, transform 320ms ease;
+  }
+
+  #view-browser.is-visible {
+    opacity: 1;
+    pointer-events: all;
+    transform: scale(1);
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: 46px;
+    flex-shrink: 0;
+    background: var(--gl-dark-card);
+    border-bottom: 1px solid var(--gl-dark-border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    z-index: 200;
+  }
+
+  .topbar-back {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 30px;
+    padding: 0 10px;
+    background: var(--gl-dark-card-2);
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 6px;
+    color: var(--gl-dark-fg-2);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms, color 120ms;
+    flex-shrink: 0;
+  }
+
+  .topbar-back:hover {
+    background: var(--gl-dark-hover);
+    border-color: var(--gl-dark-border-strong);
+    color: var(--gl-dark-fg-1);
+  }
+
+  .topbar-name {
+    font-family: var(--gl-font-display);
+    font-size: 14px;
     font-weight: 800;
+    color: var(--gl-dark-fg-1);
+    letter-spacing: -0.01em;
   }
 
-  .action span {
-    transform: translateY(-1px);
+  .topbar-divider {
+    width: 1px; height: 18px;
+    background: var(--gl-dark-border-strong);
+    opacity: 0.4;
   }
 
-  .footer {
-    color: var(--gl-fg-3);
+  .topbar-section {
+    font-size: 12px;
+    color: var(--gl-dark-fg-3);
+  }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .progress-chip {
+    height: 26px;
+    padding: 0 10px;
+    background: var(--gl-dark-card-2);
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 6px;
+    font-family: var(--gl-font-mono);
+    font-size: 11px;
+    color: var(--gl-dark-fg-3);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .progress-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gl-blue-500);
+    flex-shrink: 0;
+  }
+
+  /* ── Shell below topbar ── */
+  .browser-shell {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 252px;
+    flex-shrink: 0;
+    background: var(--gl-dark-surface);
+    border-right: 1px solid var(--gl-dark-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-head {
+    padding: 11px 11px 9px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--gl-dark-border);
+  }
+
+  .search-wrap { position: relative; }
+
+  .search-icon {
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gl-dark-fg-3);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    height: 30px;
+    padding: 0 8px 0 30px;
+    background: var(--gl-dark-input);
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 6px;
+    color: var(--gl-dark-fg-1);
     font-family: var(--gl-font-body);
-    font-size: var(--gl-text-sm);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 140ms, background 140ms;
+  }
+
+  .search-input::placeholder { color: var(--gl-dark-fg-3); }
+  .search-input:focus {
+    border-color: var(--gl-blue-500);
+    background: var(--gl-dark-card);
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 16px;
+  }
+
+  /* Nav groups */
+  .nav-group-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .nav-group-hdr:hover .nav-group-lbl { color: var(--gl-dark-fg-2); }
+
+  .nav-group-lbl {
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gl-dark-fg-3);
+    transition: color 120ms;
+  }
+
+  .nav-chevron {
+    color: var(--gl-dark-fg-3);
+    transition: transform 180ms ease;
+    flex-shrink: 0;
+  }
+
+  .nav-group.is-collapsed .nav-chevron { transform: rotate(-90deg); }
+  .nav-group.is-collapsed .nav-items   { display: none; }
+
+  .nav-items { padding: 0 6px 4px; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 110ms;
+    min-width: 0;
+  }
+
+  .nav-item:hover { background: var(--gl-dark-hover); }
+  .nav-item.is-active { background: rgba(74,124,255,0.13); }
+
+  .nav-item-lbl {
+    flex: 1;
+    font-size: 12.5px;
+    color: var(--gl-dark-fg-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1;
+    transition: color 110ms;
+  }
+
+  .nav-item.is-active .nav-item-lbl,
+  .nav-item:hover .nav-item-lbl { color: var(--gl-dark-fg-1); }
+
+  .nav-status {
+    flex-shrink: 0;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  /* ── Main content ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--gl-dark-bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-wrap {
+    flex: 1;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Empty state */
+  .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: var(--gl-dark-fg-3);
+    padding: 80px 40px;
     text-align: center;
   }
 
-  @media (max-width: 760px) {
-    .launcher {
-      width: min(100% - 28px, 520px);
-      padding: 32px 0;
-    }
+  .empty svg { opacity: 0.22; }
 
-    .options {
-      grid-template-columns: 1fr;
-    }
-
-    .option-card {
-      min-height: 280px;
-      padding: 24px;
-    }
+  .empty-title {
+    font-family: var(--gl-font-display);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--gl-dark-fg-2);
   }
+
+  .empty-sub { font-size: 13px; max-width: 280px; line-height: 1.7; }
+
+  /* Preview card */
+  .preview-card {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 540px;
+    background: var(--gl-dark-card);
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 22px 52px -18px rgba(0,0,0,0.55);
+  }
+
+  .preview-card.is-visible { display: flex; }
+
+  .card-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--gl-dark-border);
+    flex-shrink: 0;
+  }
+
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+
+  .status-badge {
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-family: var(--gl-font-body);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .status-badge.s-pending  { background: rgba(74,124,255,0.14); color: var(--gl-blue-200);  border: 1px solid rgba(74,124,255,0.3);   }
+  .status-badge.s-approved { background: rgba(29,184,138,0.12); color: #86EFAC;             border: 1px solid rgba(29,184,138,0.3);  }
+  .status-badge.s-rework   { background: rgba(249,115,22,0.12); color: #FED7AA;             border: 1px solid rgba(249,115,22,0.3);  }
+
+  .review-btns { display: flex; gap: 7px; flex-shrink: 0; }
+
+  .rbtn {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-family: var(--gl-font-body);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 120ms, border-color 120ms;
+  }
+
+  .rbtn-good { background: rgba(29,184,138,0.10); color: #86EFAC; border: 1px solid rgba(29,184,138,0.30); }
+  .rbtn-good:hover { background: rgba(29,184,138,0.20); border-color: rgba(29,184,138,0.60); }
+
+  .rbtn-work { background: rgba(239,68,68,0.08); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.28); }
+  .rbtn-work:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.50); }
+
+  .rbtn-open { background: var(--gl-dark-card-2); color: var(--gl-dark-fg-2); border: 1px solid var(--gl-dark-border-strong); margin-left: 4px; }
+  .rbtn-open:hover { background: var(--gl-dark-hover); border-color: rgba(67,70,84,0.9); color: var(--gl-dark-fg-1); }
+
+  .card-info {
+    padding: 13px 18px 11px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--gl-dark-border);
+  }
+
+  .card-title {
+    font-family: var(--gl-font-display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--gl-dark-fg-1);
+    letter-spacing: -0.01em;
+    margin-bottom: 3px;
+  }
+
+  .card-desc {
+    font-size: 12.5px;
+    color: var(--gl-dark-fg-3);
+    line-height: 1.5;
+  }
+
+  .card-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 7px;
+    height: 20px;
+    padding: 0 7px;
+    background: var(--gl-dark-card-2);
+    border: 1px solid var(--gl-dark-border);
+    border-radius: 4px;
+    font-family: var(--gl-font-mono);
+    font-size: 10px;
+    color: var(--gl-dark-fg-3);
+  }
+
+  .card-iframe-wrap {
+    flex: 1;
+    background: #0D0E12;
+    position: relative;
+    min-height: 380px;
+  }
+
+  .card-iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    border: none;
+    display: block;
+  }
+
+  .iframe-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0D0E12;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 300ms;
+  }
+
+  .iframe-loading.is-done { opacity: 0; }
+
+  .spin {
+    width: 20px; height: 20px;
+    border: 2px solid var(--gl-dark-border-strong);
+    border-top-color: var(--gl-blue-500);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
-<body data-theme="">
-  <main class="launcher">
-    <header class="header">
-      <div class="eyebrow">GeniusLink Design System</div>
-      <h1>اختر واجهة العرض</h1>
-      <p class="subtitle">
-        نقطة اقلاع سريعة للانتقال إلى نسخة سطح المكتب أو نسخة الهاتف من واجهات GeniusLink.
+<body>
+
+<!-- ══════════════════════════════════════════════
+     LANDING VIEW
+══════════════════════════════════════════════ -->
+<div id="view-landing">
+  <div class="landing">
+
+    <header class="landing-header">
+      <div class="landing-eyebrow">GeniusLink Design System</div>
+      <h1 class="landing-title">Where do you want to go?</h1>
+      <p class="landing-sub">
+        Browse foundations and components, or jump straight into a live UI Kit.
       </p>
     </header>
 
-    <section class="options" aria-label="خيارات العرض">
-      <a class="option-card" href="ui_kits/genius_link_desktop/index.html">
+    <!-- Three cards -->
+    <div class="cards">
+
+      <!-- 1 · Design System -->
+      <div class="card" id="card-ds" role="button" tabindex="0" aria-label="Open Design System browser">
         <div class="card-copy">
-          <div class="card-label">Desktop UI Kit</div>
-          <h2 class="card-title">واجهة سطح المكتب</h2>
-          <p class="card-text">افتح نسخة الويب الكاملة مع الشاشات والجداول ولوحات التحكم.</p>
+          <div class="card-label">Design System</div>
+          <h2 class="card-title">Components &amp; Foundations</h2>
+          <p class="card-desc">Browse colors, typography, tokens, and every UI component with live previews and a built-in review system.</p>
         </div>
+
         <div class="preview" aria-hidden="true">
-          <div class="desktop-frame">
-            <div class="desktop-top"><span></span><span></span><span></span></div>
-            <div class="desktop-grid">
-              <div class="desktop-nav"><i></i><i></i><i></i><i></i></div>
-              <div class="desktop-content"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="ds-mockup">
+            <div class="ds-sidebar">
+              <div class="ds-sidebar-group">
+                <div class="ds-sidebar-gname"></div>
+                <div class="ds-sidebar-item active"></div>
+                <div class="ds-sidebar-item"></div>
+                <div class="ds-sidebar-item"></div>
+              </div>
+              <div class="ds-sidebar-group">
+                <div class="ds-sidebar-gname"></div>
+                <div class="ds-sidebar-item"></div>
+                <div class="ds-sidebar-item"></div>
+              </div>
+              <div class="ds-sidebar-group">
+                <div class="ds-sidebar-gname"></div>
+                <div class="ds-sidebar-item"></div>
+                <div class="ds-sidebar-item"></div>
+                <div class="ds-sidebar-item"></div>
+              </div>
+            </div>
+            <div class="ds-main">
+              <div class="ds-topbar">
+                <div class="ds-badge"></div>
+              </div>
+              <div class="ds-content">
+                <div class="ds-row accent"></div>
+                <div class="ds-row wide"></div>
+                <div class="ds-row mid"></div>
+                <div class="ds-row short"></div>
+                <div class="ds-swatches">
+                  <div class="ds-swatch" style="background:#4A7CFF"></div>
+                  <div class="ds-swatch" style="background:#1DB88A"></div>
+                  <div class="ds-swatch" style="background:#F97316"></div>
+                  <div class="ds-swatch" style="background:#EF4444"></div>
+                  <div class="ds-swatch" style="background:#292D38"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="action">فتح الواجهة <span>←</span></div>
-      </a>
 
-      <a class="option-card" href="ui_kits/genius_link_mobile/index.html">
-        <div class="card-copy">
-          <div class="card-label">Mobile UI Kit</div>
-          <h2 class="card-title">واجهة الهاتف</h2>
-          <p class="card-text">افتح نموذج الهاتف داخل إطار iOS لمراجعة تجربة الشاشات الصغيرة.</p>
+        <div class="card-action">
+          Open browser
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
         </div>
+      </div>
+
+      <!-- 2 · Desktop UI Kit -->
+      <a class="card accent-orange" href="ui_kits/genius_link_desktop/index.html"
+         aria-label="Open Desktop UI Kit">
+        <div class="card-copy">
+          <div class="card-label">UI Kit</div>
+          <h2 class="card-title">Desktop Application</h2>
+          <p class="card-desc">Full desktop web app screens — dashboard, journal, accounts, reports, and more.</p>
+        </div>
+
         <div class="preview" aria-hidden="true">
-          <div class="phone-frame">
-            <div class="phone-screen"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="desktop-frame">
+            <div class="desktop-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="desktop-grid">
+              <div class="desktop-nav">
+                <i style="background:var(--gl-warning-500);opacity:1"></i>
+                <i></i><i></i><i></i><i></i>
+              </div>
+              <div class="desktop-content">
+                <i></i><i></i><i></i><i></i><i></i>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="action">فتح الواجهة <span>←</span></div>
-      </a>
-    </section>
 
-    <footer class="footer">ui_kits/genius_link</footer>
-  </main>
+        <div class="card-action">
+          Open UI Kit
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </div>
+      </a>
+
+      <!-- 3 · Mobile UI Kit -->
+      <a class="card accent-green" href="ui_kits/genius_link_mobile/index.html"
+         aria-label="Open Mobile UI Kit">
+        <div class="card-copy">
+          <div class="card-label">UI Kit</div>
+          <h2 class="card-title">Mobile Application</h2>
+          <p class="card-desc">Mobile app screens inside an iOS frame — authentication, dashboard, accounts, and transactions.</p>
+        </div>
+
+        <div class="preview" aria-hidden="true">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <i style="background:var(--gl-success-500);opacity:1"></i>
+              <i></i>
+              <i></i><i></i><i></i><i></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-action">
+          Open UI Kit
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </div>
+      </a>
+
+    </div><!-- /cards -->
+
+    <footer class="landing-footer">GeniusLink Design System · ui_kits/genius_link</footer>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     BROWSER VIEW (Design System)
+══════════════════════════════════════════════ -->
+<div id="view-browser">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <button class="topbar-back" id="js-back" aria-label="Back to home">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/>
+        <polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Home
+    </button>
+    <div class="topbar-divider"></div>
+    <span class="topbar-name">GeniusLink</span>
+    <div class="topbar-divider"></div>
+    <span class="topbar-section">Design System</span>
+    <div class="topbar-right">
+      <div class="progress-chip">
+        <span class="progress-dot"></span>
+        <span id="js-progress">— / — reviewed</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Browser shell -->
+  <div class="browser-shell">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" aria-label="Component navigation">
+      <div class="sidebar-head">
+        <div class="search-wrap">
+          <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input class="search-input" id="js-search" type="search"
+                 placeholder="Search components…" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="sidebar-scroll" id="js-nav"></div>
+    </nav>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="preview-wrap">
+
+        <div class="empty" id="js-empty">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M9 9h6M9 12h4M9 15h2"/>
+          </svg>
+          <div class="empty-title">Select a component</div>
+          <div class="empty-sub">Pick any item from the sidebar to preview it here.</div>
+        </div>
+
+        <div class="preview-card" id="js-card">
+
+          <div class="card-topbar">
+            <div class="card-meta">
+              <span class="status-badge s-pending" id="js-badge">Needs review</span>
+            </div>
+            <div class="review-btns">
+              <button class="rbtn rbtn-good" id="js-btn-good">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
+                  <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                </svg>
+                Looks good
+              </button>
+              <button class="rbtn rbtn-work" id="js-btn-work">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                Needs work...
+              </button>
+              <button class="rbtn rbtn-open" id="js-btn-open" title="Open in new tab">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Open
+              </button>
+            </div>
+          </div>
+
+          <div class="card-info">
+            <div class="card-title" id="js-title">Component</div>
+            <div class="card-desc"  id="js-desc">Description</div>
+            <div class="card-path">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span id="js-path-text">—</span>
+            </div>
+          </div>
+
+          <div class="card-iframe-wrap">
+            <div class="iframe-loading" id="js-loading">
+              <div class="spin"></div>
+            </div>
+            <iframe class="card-iframe" id="js-iframe" src="about:blank"
+                    title="Component preview" sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+
+        </div><!-- /preview-card -->
+      </div>
+    </main>
+
+  </div><!-- /browser-shell -->
+</div><!-- /view-browser -->
+
+
+<script>
+/* ════════════════════════════════════════════════════════
+   View switching
+════════════════════════════════════════════════════════ */
+const viewLanding = document.getElementById('view-landing');
+const viewBrowser = document.getElementById('view-browser');
+
+function openBrowser() {
+  viewLanding.classList.add('is-hidden');
+  viewBrowser.classList.add('is-visible');
+  if (!browserInitialised) initBrowser();
+}
+
+function openLanding() {
+  viewBrowser.classList.remove('is-visible');
+  viewLanding.classList.remove('is-hidden');
+}
+
+// DS card click / keyboard
+const cardDs = document.getElementById('card-ds');
+cardDs.addEventListener('click', openBrowser);
+cardDs.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBrowser(); } });
+
+// Back button
+document.getElementById('js-back').addEventListener('click', openLanding);
+
+
+/* ════════════════════════════════════════════════════════
+   Component catalog
+════════════════════════════════════════════════════════ */
+const GROUPS = [
+  {
+    id: 'foundation', label: 'Foundation',
+    items: [
+      { id: 'colors-primary',        label: 'Primary Colors',      src: 'preview/colors-primary.html',        desc: 'Brand blue palette — the single dominant accent' },
+      { id: 'colors-semantic',       label: 'Semantic Colors',     src: 'preview/colors-semantic.html',       desc: 'Success, danger, and warning states' },
+      { id: 'colors-dark-surfaces',  label: 'Dark Surfaces',       src: 'preview/colors-dark-surfaces.html',  desc: 'Background layers for the dark theme' },
+      { id: 'colors-light-surfaces', label: 'Light Surfaces',      src: 'preview/colors-light-surfaces.html', desc: 'Background layers for the light theme' },
+      { id: 'colors-text-dark',      label: 'Text — Dark',         src: 'preview/colors-text-dark.html',      desc: 'Foreground text hierarchy on dark' },
+      { id: 'colors-text-light',     label: 'Text — Light',        src: 'preview/colors-text-light.html',     desc: 'Foreground text hierarchy on light' },
+      { id: 'colors-section-markers',label: 'Section Markers',     src: 'preview/colors-section-markers.html',desc: 'Colored left-bar accents for card sections' },
+      { id: 'spacing-scale',         label: 'Spacing Scale',       src: 'preview/spacing-scale.html',         desc: '4 px base grid — all spacing tokens' },
+      { id: 'radii',                 label: 'Border Radii',        src: 'preview/radii.html',                 desc: 'Corner radius tokens from xs → pill' },
+      { id: 'shadows',               label: 'Shadows',             src: 'preview/shadows.html',               desc: 'Elevation expressed through shadow' },
+      { id: 'elevation-layers',      label: 'Elevation Layers',    src: 'preview/elevation-layers.html',      desc: 'Z-index system for overlays and modals' },
+      { id: 'grid-breakpoints',      label: 'Grid & Breakpoints',  src: 'preview/grid-breakpoints.html',      desc: 'Layout grid and responsive breakpoints' },
+      { id: 'motion-tokens',         label: 'Motion Tokens',       src: 'preview/motion-tokens.html',         desc: 'Duration and easing scale for animations' },
+    ]
+  },
+  {
+    id: 'typography', label: 'Typography',
+    items: [
+      { id: 'type-display',   label: 'Display',        src: 'preview/type-display.html',   desc: 'Manrope ExtraBold — page headlines and titles' },
+      { id: 'type-body',      label: 'Body',           src: 'preview/type-body.html',      desc: 'Inter — UI labels, paragraphs, tables' },
+      { id: 'type-bilingual', label: 'Bilingual Type', src: 'preview/type-bilingual.html', desc: 'Latin + Arabic side-by-side type specimens' },
+      { id: 'type-eyebrow',   label: 'Eyebrow',        src: 'preview/type-eyebrow.html',   desc: 'Uppercase tracking labels and breadcrumbs' },
+      { id: 'type-mono',      label: 'Mono',           src: 'preview/type-mono.html',      desc: 'JetBrains Mono — codes, IDs, serial numbers' },
+    ]
+  },
+  {
+    id: 'ui-components', label: 'UI Components',
+    items: [
+      { id: 'buttons',        label: 'Buttons',        src: 'preview/buttons.html',        desc: 'Primary, secondary, danger, and icon-only variants' },
+      { id: 'inputs',         label: 'Inputs',         src: 'preview/inputs.html',         desc: 'Text fields, search, and form controls' },
+      { id: 'status-pills',   label: 'Status Pills',   src: 'preview/status-pills.html',   desc: 'Active, pending, suspended, draft states' },
+      { id: 'table',          label: 'Table',          src: 'preview/table.html',          desc: 'Data table with selection and row actions' },
+      { id: 'icons',          label: 'Icons',          src: 'preview/icons.html',          desc: 'Lucide icon library — usage and size guidelines' },
+      { id: 'card-anatomy',   label: 'Card Anatomy',   src: 'preview/card-anatomy.html',   desc: 'Card structure: marker, content, and actions' },
+      { id: 'section-header', label: 'Section Header', src: 'preview/section-header.html', desc: 'Colored bar + title + subtitle device' },
+      { id: 'footer',         label: 'Footer',         src: 'preview/footer.html',         desc: 'Page footer with navigation and credits' },
+    ]
+  },
+  {
+    id: 'brand', label: 'Brand',
+    items: [
+      { id: 'brand-mark', label: 'Brand Mark', src: 'preview/brand-mark.html', desc: 'Isometric cube mark paired with Manrope ExtraBold wordmark' },
+    ]
+  },
+  {
+    id: 'design-system', label: 'Design System',
+    items: [
+      { id: 'ds-core',      label: 'Core Components',    src: 'design_system/components-core.html',               desc: 'Foundational building blocks' },
+      { id: 'ds-tabs',      label: 'Browser Tabs',       src: 'design_system/components-browsertabs.html',        desc: 'Tab navigation and content panels' },
+      { id: 'ds-charts',    label: 'Charts',             src: 'design_system/components-charts.html',             desc: 'Data visualisation components' },
+      { id: 'ds-combobox',  label: 'Combobox',           src: 'design_system/components-combobox.html',           desc: 'Searchable select and autocomplete' },
+      { id: 'ds-domain',    label: 'Domain Components',  src: 'design_system/components-domain.html',             desc: 'Business-domain specific components' },
+      { id: 'ds-nav',       label: 'Navigation Sidebar', src: 'design_system/components-navigation-sidebar.html', desc: 'App navigation with icons and labels' },
+      { id: 'ds-skeletons', label: 'Skeletons',          src: 'design_system/components-skeletons.html',          desc: 'Loading placeholder states' },
+      { id: 'ds-table',     label: 'Table (DS)',         src: 'design_system/components-table.html',              desc: 'Advanced data table with sorting and filters' },
+      { id: 'ds-tree',      label: 'Account Tree',       src: 'design_system/components-tree.html',               desc: 'Five-level chart of accounts with recursive search' },
+      { id: 'ds-motion',    label: 'Motion',             src: 'design_system/motion.html',                        desc: 'Animation patterns and transitions' },
+      { id: 'ds-patterns',  label: 'Patterns',           src: 'design_system/patterns.html',                      desc: 'Reusable layout and interaction patterns' },
+    ]
+  },
+];
+
+/* ════════════════════════════════════════════════════════
+   State
+════════════════════════════════════════════════════════ */
+const STORE_KEY = 'gl-ds-review-v2';
+let reviewState = {};
+try { reviewState = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (_) {}
+
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(reviewState)); } catch (_) {}
+}
+
+/* ════════════════════════════════════════════════════════
+   DOM refs
+════════════════════════════════════════════════════════ */
+const elNav      = document.getElementById('js-nav');
+const elSearch   = document.getElementById('js-search');
+const elEmpty    = document.getElementById('js-empty');
+const elCard     = document.getElementById('js-card');
+const elBadge    = document.getElementById('js-badge');
+const elBtnGood  = document.getElementById('js-btn-good');
+const elBtnWork  = document.getElementById('js-btn-work');
+const elTitle    = document.getElementById('js-title');
+const elDesc     = document.getElementById('js-desc');
+const elPathText = document.getElementById('js-path-text');
+const elIframe   = document.getElementById('js-iframe');
+const elLoading  = document.getElementById('js-loading');
+const elProgress = document.getElementById('js-progress');
+
+let activeId = null;
+const collapsed = new Set();
+let browserInitialised = false;
+
+/* ════════════════════════════════════════════════════════
+   Sidebar render
+════════════════════════════════════════════════════════ */
+function renderSidebar(q = '') {
+  elNav.innerHTML = '';
+  const lq = q.toLowerCase().trim();
+
+  GROUPS.forEach(g => {
+    const items = lq
+      ? g.items.filter(it => it.label.toLowerCase().includes(lq) || it.desc.toLowerCase().includes(lq))
+      : g.items;
+
+    if (!items.length) return;
+
+    const grpEl = document.createElement('div');
+    grpEl.className = 'nav-group' + (!lq && collapsed.has(g.id) ? ' is-collapsed' : '');
+    grpEl.dataset.gid = g.id;
+
+    grpEl.innerHTML = `
+      <div class="nav-group-hdr" data-gid="${g.id}">
+        <span class="nav-group-lbl">${g.label}</span>
+        <svg class="nav-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      <div class="nav-items">
+        ${items.map(it => {
+          const st = reviewState[it.id] || 'pending';
+          const isActive = it.id === activeId;
+          let icon = '';
+          if (st === 'approved') {
+            icon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1DB88A"
+                      stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"/></svg>`;
+          } else if (st === 'rework') {
+            icon = `<span class="nav-status" style="background:var(--gl-warning-500)"></span>`;
+          } else {
+            icon = `<span class="nav-status" style="background:rgba(74,124,255,0.6)"></span>`;
+          }
+          return `<div class="nav-item${isActive ? ' is-active' : ''}" data-id="${it.id}">
+            <span class="nav-item-lbl">${it.label}</span>${icon}</div>`;
+        }).join('')}
+      </div>`;
+
+    grpEl.querySelector('.nav-group-hdr').addEventListener('click', () => {
+      if (lq) return;
+      grpEl.classList.toggle('is-collapsed');
+      collapsed.has(g.id) ? collapsed.delete(g.id) : collapsed.add(g.id);
+    });
+
+    grpEl.querySelectorAll('.nav-item').forEach(el => {
+      el.addEventListener('click', () => selectItem(el.dataset.id));
+    });
+
+    elNav.appendChild(grpEl);
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   Item selection
+════════════════════════════════════════════════════════ */
+function findItem(id) {
+  for (const g of GROUPS) {
+    const it = g.items.find(i => i.id === id);
+    if (it) return it;
+  }
+  return null;
+}
+
+function selectItem(id) {
+  const it = findItem(id);
+  if (!it) return;
+  activeId = id;
+  elEmpty.style.display = 'none';
+  elCard.classList.add('is-visible');
+  elTitle.textContent    = it.label;
+  elDesc.textContent     = it.desc;
+  elPathText.textContent = it.src;
+  elLoading.classList.remove('is-done');
+  elIframe.src = it.src;
+  applyBadge(id);
+  renderSidebar(elSearch.value);
+  renderProgress();
+}
+
+/* ════════════════════════════════════════════════════════
+   Badge
+════════════════════════════════════════════════════════ */
+const BADGE_MAP = {
+  pending:  { cls: 's-pending',  text: 'Needs review' },
+  approved: { cls: 's-approved', text: 'Looks good'   },
+  rework:   { cls: 's-rework',   text: 'Needs work'   },
+};
+
+function applyBadge(id) {
+  const st  = reviewState[id] || 'pending';
+  const cfg = BADGE_MAP[st] || BADGE_MAP.pending;
+  elBadge.className  = 'status-badge ' + cfg.cls;
+  elBadge.textContent = cfg.text;
+}
+
+/* ════════════════════════════════════════════════════════
+   Review buttons
+════════════════════════════════════════════════════════ */
+elBtnGood.addEventListener('click', () => {
+  if (!activeId) return;
+  reviewState[activeId] = reviewState[activeId] === 'approved' ? 'pending' : 'approved';
+  persist(); applyBadge(activeId); renderSidebar(elSearch.value); renderProgress();
+});
+
+elBtnWork.addEventListener('click', () => {
+  if (!activeId) return;
+  reviewState[activeId] = reviewState[activeId] === 'rework' ? 'pending' : 'rework';
+  persist(); applyBadge(activeId); renderSidebar(elSearch.value); renderProgress();
+});
+
+document.getElementById('js-btn-open').addEventListener('click', () => {
+  const it = findItem(activeId);
+  if (it) window.open(it.src, '_blank');
+});
+
+/* ════════════════════════════════════════════════════════
+   iframe
+════════════════════════════════════════════════════════ */
+elIframe.addEventListener('load', () => elLoading.classList.add('is-done'));
+
+/* ════════════════════════════════════════════════════════
+   Search
+════════════════════════════════════════════════════════ */
+elSearch.addEventListener('input', () => renderSidebar(elSearch.value));
+
+/* ════════════════════════════════════════════════════════
+   Progress
+════════════════════════════════════════════════════════ */
+function renderProgress() {
+  const total    = GROUPS.reduce((s, g) => s + g.items.length, 0);
+  const reviewed = Object.values(reviewState).filter(v => v === 'approved' || v === 'rework').length;
+  elProgress.textContent = `${reviewed} / ${total} reviewed`;
+}
+
+/* ════════════════════════════════════════════════════════
+   Lazy init browser
+════════════════════════════════════════════════════════ */
+function initBrowser() {
+  browserInitialised = true;
+  renderSidebar();
+  renderProgress();
+  const first = GROUPS[0]?.items[0];
+  if (first) selectItem(first.id);
+}
+</script>
 </body>
 </html>
